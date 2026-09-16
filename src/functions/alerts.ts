@@ -19,7 +19,18 @@ export interface RuleView {
 	readonly lastFired: string | null;
 }
 
-export interface AlertsView {
+export type AlertsView = AlertsLoaded | AlertsFault;
+
+interface AlertsFault {
+	readonly ok: false;
+	readonly host: string;
+	readonly operator: null;
+	readonly fetchedAt: string;
+	readonly message: string;
+}
+
+interface AlertsLoaded {
+	readonly ok: true;
 	readonly host: string;
 	readonly operator: string | null;
 	readonly fetchedAt: string;
@@ -58,6 +69,7 @@ export const loadAlerts = createServerFn({ method: "GET" })
 					const byRule = new Map<string, Array<AlertState>>();
 					for (const s of states) byRule.set(s.rule_id, [...(byRule.get(s.rule_id) ?? []), s]);
 					return {
+						ok: true as const,
 						host,
 						operator: getRequestHeader("tailscale-user-login") ?? null,
 						fetchedAt,
@@ -89,15 +101,11 @@ export const loadAlerts = createServerFn({ method: "GET" })
 			.catch((cause: unknown): AlertsView => {
 				console.error("alerts: runtime failed", cause);
 				return {
+					ok: false,
 					host: "unknown",
 					operator: null,
 					fetchedAt: new Date().toISOString(),
-					observedAt: null,
-					rules: [],
-					incidents: [],
-					total: 0,
-					page: 1,
-					error: "console failed before reading the alerts",
+					message: "console failed before reading the alerts",
 				};
 			}),
 	);

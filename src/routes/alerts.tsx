@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { span, stamp } from "#/components/alerts/format";
+import { Fault } from "#/components/pools/fault";
 import { Shell } from "#/components/shell";
 import { PAGE_SIZE, loadAlerts } from "#/functions/alerts";
 import { useAutoRefresh } from "#/hooks/use-auto-refresh";
@@ -20,6 +21,13 @@ function AlertsPage() {
 	const view = Route.useLoaderData();
 	const now = useNow(Date.parse(view.fetchedAt));
 	useAutoRefresh(30_000);
+	if (!view.ok) {
+		return (
+			<Shell host={view.host} operator={view.operator} stamp={{ observedAt: null, serverNow: now }}>
+				<Fault reason="internal" message={view.message} host={view.host} />
+			</Shell>
+		);
+	}
 	const firing = view.rules.flatMap((rule) => rule.firing.map((f) => ({ rule, ...f })));
 	const clear = view.rules.filter((rule) => rule.firing.length === 0);
 	const pages = Math.max(1, Math.ceil(view.total / PAGE_SIZE));

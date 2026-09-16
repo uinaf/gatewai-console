@@ -10,7 +10,6 @@ export interface AlertState {
 	readonly since: string | null;
 	readonly last_fired: string | null;
 	readonly detail: string | null;
-	readonly delivered: number;
 }
 
 export const readStates = Effect.gen(function* () {
@@ -35,10 +34,9 @@ export const applyCondition = (condition: Condition, firing: boolean, now: strin
 				since: now,
 				last_fired: now,
 				detail: condition.detail,
-				delivered: 0,
 			})} ON CONFLICT (rule_id, subject) DO UPDATE SET
 				firing = 1, since = excluded.since, last_fired = excluded.last_fired,
-				detail = excluded.detail, delivered = 0`;
+				detail = excluded.detail`;
 			yield* sql`INSERT INTO alert_incidents ${sql.insert({
 				rule_id: condition.ruleId,
 				subject: condition.subject,
@@ -50,7 +48,7 @@ export const applyCondition = (condition: Condition, firing: boolean, now: strin
 			return "fired" as Transition;
 		}
 		if (!firing && was) {
-			yield* sql`UPDATE alert_state SET firing = 0, since = ${now}, detail = ${condition.detail}, delivered = 0
+			yield* sql`UPDATE alert_state SET firing = 0, since = ${now}, detail = ${condition.detail}
 				WHERE rule_id = ${condition.ruleId} AND subject = ${condition.subject}`;
 			yield* sql`UPDATE alert_incidents SET ended_at = ${now}
 				WHERE rule_id = ${condition.ruleId} AND subject = ${condition.subject} AND ended_at IS NULL`;
@@ -64,7 +62,6 @@ export const applyCondition = (condition: Condition, firing: boolean, now: strin
 				since: now,
 				last_fired: null,
 				detail: condition.detail,
-				delivered: 1,
 			})}`;
 		} else if (firing) {
 			yield* sql`UPDATE alert_state SET detail = ${condition.detail}
@@ -73,10 +70,22 @@ export const applyCondition = (condition: Condition, firing: boolean, now: strin
 		return "none" as Transition;
 	});
 
-export const markDelivered = (ruleId: string, subject: string) =>
+/** Clears every stored pair the current observation no longer emits (credential gone). */
+export const clearMissing = (seen: ReadonlySet<string>, now: string) =>
 	Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;
-		yield* sql`UPDATE alert_state SET delivered = 1 WHERE rule_id = ${ruleId} AND subject = ${subject}`;
+		const firing = yield* sql<{ rule_id: string; subject: string }>`
+			SELECT rule_id, subject FROM alert_state WHERE firing = 1`;
+		let cleared = 0;
+		for (const row of firing) {
+			if (seen.has(`${row.rule_id}\u0000${row.subject}`)) continue;
+			yield* sql`UPDATE alert_state SET firing = 0, since = ${now}, detail = 'subject no longer reported'
+				WHERE rule_id = ${row.rule_id} AND subject = ${row.subject}`;
+			yield* sql`UPDATE alert_incidents SET ended_at = ${now}
+				WHERE rule_id = ${row.rule_id} AND subject = ${row.subject} AND ended_at IS NULL`;
+			cleared += 1;
+		}
+		return cleared;
 	});
 
 export interface Incident {

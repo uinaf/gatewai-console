@@ -4,7 +4,6 @@ import { join } from "node:path";
 
 import { ConfigProvider, Effect, Layer, Schema } from "effect";
 import { HttpClient, HttpClientResponse } from "effect/unstable/http";
-import { SqlClient } from "effect/unstable/sql";
 import { expect, test } from "vitest";
 
 import { evaluate } from "#/server/alerts/evaluate";
@@ -136,7 +135,14 @@ test("runAlerts opens one incident per crossing, posts /fail then the plain hear
 		[0, 0],
 		[0, 1],
 	]);
-	expect(posts).toEqual(["https://hb.test/abc/fail", "https://hb.test/abc"]);
+	// Every pass pings: ok, fail, fail, fail, ok.
+	expect(posts).toEqual([
+		"https://hb.test/abc",
+		"https://hb.test/abc/fail",
+		"https://hb.test/abc/fail",
+		"https://hb.test/abc/fail",
+		"https://hb.test/abc",
+	]);
 	expect(result.incidents.total).toBe(1);
 	expect(result.incidents.rows[0]).toMatchObject({
 		rule_id: rule.id,
@@ -146,6 +152,33 @@ test("runAlerts opens one incident per crossing, posts /fail then the plain hear
 	});
 	expect(result.states[0]?.firing).toBe(0);
 	expect(result.states[0]?.last_fired).toBe("2026-09-16T00:01:00Z");
+});
+
+test("a subject that disappears from the pool clears and closes its incident", async () => {
+	const dir = mkdtempSync(join(tmpdir(), "gatewai-alerts-"));
+	writeFileSync(join(dir, "alerts.json"), JSON.stringify({ rules: [rule] }));
+	const { layer } = sink();
+	const env = Layer.mergeAll(Database, layer).pipe(
+		Layer.provideMerge(
+			ConfigProvider.layer(
+				ConfigProvider.fromUnknown({
+					GATEWAI_DB_PATH: join(dir, "c.sqlite"),
+					GATEWAI_ALERTS_FILE: join(dir, "alerts.json"),
+				}),
+			),
+		),
+	);
+	const result = await Effect.gen(function* () {
+		yield* runAlerts(
+			{ observedAt: "x", credentials: [withWeekly(codex, 95)] },
+			"2026-09-16T00:01:00Z",
+		);
+		const gone = yield* runAlerts({ observedAt: "x", credentials: [] }, "2026-09-16T00:02:00Z");
+		const incidents = yield* listIncidents(1, 10);
+		return { gone, incidents };
+	}).pipe(Effect.provide(env), Effect.runPromise);
+	expect(result.gone.cleared).toBe(1);
+	expect(result.incidents.rows[0]?.ended_at).toBe("2026-09-16T00:02:00Z");
 });
 
 test("a failed heartbeat post is retried on the next pass", async () => {
@@ -172,8 +205,7 @@ test("a failed heartbeat post is retried on the next pass", async () => {
 			),
 		),
 	);
-	const delivered = await Effect.gen(function* () {
-		const sql = yield* SqlClient.SqlClient;
+	const states = await Effect.gen(function* () {
 		yield* runAlerts(
 			{ observedAt: "x", credentials: [withWeekly(codex, 95)] },
 			"2026-09-16T00:01:00Z",
@@ -183,8 +215,9 @@ test("a failed heartbeat post is retried on the next pass", async () => {
 			{ observedAt: "x", credentials: [withWeekly(codex, 95)] },
 			"2026-09-16T00:02:00Z",
 		);
-		return yield* sql<{ delivered: number }>`SELECT delivered FROM alert_state`;
+		return yield* readStates;
 	}).pipe(Effect.provide(env), Effect.runPromise);
+	// The failed post changes no state; the next pass posts the same state again.
 	expect(posts).toEqual(["https://hb.test/abc/fail", "https://hb.test/abc/fail"]);
-	expect(delivered[0]?.delivered).toBe(1);
+	expect(states[0]?.firing).toBe(1);
 });

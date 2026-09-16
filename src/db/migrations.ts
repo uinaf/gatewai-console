@@ -91,7 +91,6 @@ export const migrations = {
 			since text,
 			last_fired text,
 			detail text,
-			delivered integer NOT NULL DEFAULT 1,
 			PRIMARY KEY (rule_id, subject)
 		)`;
 		yield* sql`CREATE TABLE alert_incidents (
