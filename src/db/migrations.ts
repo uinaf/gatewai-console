@@ -5,7 +5,7 @@ import { SqlClient } from "effect/unstable/sql";
 export const migrations = {
 	"0001_init": Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;
-		// Key-value table that proves the migration path. Later layers add the ledger.
-		yield* sql`CREATE TABLE meta (key text PRIMARY KEY NOT NULL, value text NOT NULL)`;
+		// IF NOT EXISTS: volumes booted by the 0.1.0 image already hold this table from Drizzle.
+		yield* sql`CREATE TABLE IF NOT EXISTS meta (key text PRIMARY KEY NOT NULL, value text NOT NULL)`;
 	}),
 };
