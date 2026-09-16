@@ -39,11 +39,19 @@ on PATH. Scripts are in [package.json](package.json).
 
 ```bash
 pnpm install --frozen-lockfile
-vp dev                        # http://localhost:3000
+pnpm run env                  # .env.local from 1Password (op signin first); never prints values
+pnpm run doctor               # read-only: toolchain pins, env, gateway reachable
+PORT=3000 pnpm run dev        # strict port: a collision fails instead of drifting
 vp check                      # oxfmt + oxlint + typecheck
 vp run verify                 # the CI gate; see package.json#scripts.verify
+docker build -t gatewai-console:ci . && pnpm run smoke gatewai-console:ci
+                              # the shipped image, hardened as in production
 node .output/server/index.mjs # the production build after vp run build
 ```
+
+`scripts/` holds the lifecycle helpers CI shares: `env`, `doctor`, `smoke`.
+They are plain Node TypeScript with no repository imports so they run before
+anything is built.
 
 Runtime environment: `GATEWAI_DB_PATH` (default `data/console.sqlite`) in
 [src/server/database.ts](src/server/database.ts); `GATEWAI_MANAGEMENT_URL`
@@ -89,7 +97,13 @@ pools; the key never appears in the payload or the log.
 
 ## Delivery
 
-- Conventional commits. PRs against `main`; `verify` and `scan` run on PRs.
+- Conventional commits. PRs against `main`; `verify` (gate plus a container
+  smoke) and `scan` run on PRs and are required by the `default-branch-checks`
+  ruleset. Squash is the only merge method; branches delete on merge.
+- PR bodies follow the [uinaf/.github](https://github.com/uinaf/.github)
+  template: problem, solution, proof. Proof carries only what CI cannot show;
+  attach screenshots with `gh pr create --attach ./shot.png` or
+  `gh pr comment <n> --attach`, never commit them.
 - `release.yml` on push to `main` re-runs verify, then pushes
   `ghcr.io/uinaf/gatewai-console` tagged `sha-<sha>`, the package version, and
   `latest`, with the digest in the job summary. Deployment is
