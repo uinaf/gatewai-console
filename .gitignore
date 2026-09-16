@@ -6,6 +6,11 @@ dist
 .tanstack
 /.agents/*
 !/.agents/skills/
+/.agents/skills/*
+!/.agents/skills/effect-ts/
+!/.agents/skills/react-ban-use-effect/
+!/.agents/skills/react-doctor/
+!/.agents/skills/tanstack-start/
 plans/
 *.local
 .env

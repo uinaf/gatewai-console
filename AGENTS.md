@@ -78,6 +78,13 @@ the proxy yet.
   [zebroid-infra#124](https://github.com/uinaf/zebroid-infra/issues/124).
 - Renovate extends `uinaf/renovate-config`.
 
+## Repository Skills
+
+- For React effect changes, use [react-ban-use-effect](.agents/skills/react-ban-use-effect/SKILL.md).
+- For React feature and bug verification or diagnostics, use [react-doctor](.agents/skills/react-doctor/SKILL.md).
+- For Start routes, server routes, server functions, SSR, or the Node build, use [tanstack-start](.agents/skills/tanstack-start/SKILL.md). Its Vinxi and `app.config.ts` examples predate this repo; follow the installed Start version and `vite.config.ts`.
+- For Effect setup and routing to the bundled guide, use [effect-ts](.agents/skills/effect-ts/SKILL.md). Keep `effect` at the pinned rc; the skill's install step does not authorize an upgrade.
+
 # Learning more about Effect
 
 This repository uses the Effect Typescript library.
