@@ -119,10 +119,12 @@ export const upsertCredentials = (credentials: ReadonlyArray<Credential>, seenAt
 				name: credential.name,
 				provider: credential.provider,
 				label: credential.label,
+				auth_index: credential.authIndex,
 				first_seen: seenAt,
 				last_seen: seenAt,
 			})} ON CONFLICT (name) DO UPDATE SET
-				provider = excluded.provider, label = excluded.label, last_seen = excluded.last_seen`;
+				provider = excluded.provider, label = excluded.label,
+				auth_index = excluded.auth_index, last_seen = excluded.last_seen`;
 		}
 	});
 
