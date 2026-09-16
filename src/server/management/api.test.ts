@@ -123,8 +123,8 @@ test("runbook actions post the documented bodies", async () => {
 	const exit = await run(layer, (api) =>
 		Effect.all([
 			api.resetQuota("abc"),
-			api.refresh("codex-altay@uinaf.dev.json"),
-			api.patchFields("codex-altay@uinaf.dev.json", { websockets: false }),
+			api.refresh("codex-two@example.com.json"),
+			api.patchFields("codex-two@example.com.json", { websockets: false }),
 		]),
 	);
 	expect(exit._tag).toBe("Success");
@@ -136,8 +136,8 @@ test("runbook actions post the documented bodies", async () => {
 		]),
 	).toEqual([
 		["POST", "/reset-quota", '{"auth_index":"abc"}'],
-		["POST", "/auth-files/refresh", '{"name":"codex-altay@uinaf.dev.json"}'],
-		["PATCH", "/auth-files/fields", '{"name":"codex-altay@uinaf.dev.json","websockets":false}'],
+		["POST", "/auth-files/refresh", '{"name":"codex-two@example.com.json"}'],
+		["PATCH", "/auth-files/fields", '{"name":"codex-two@example.com.json","websockets":false}'],
 	]);
 });
 

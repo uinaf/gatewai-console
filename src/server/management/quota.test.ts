@@ -18,7 +18,7 @@ test("fixture decodes without token material", () => {
 });
 
 test("anthropic unified windows fold into 5-hour, weekly, weekly opus", () => {
-	const credential = byName("claude-altay@uinaf.dev.json");
+	const credential = byName("claude-two@example.com.json");
 	expect(credential.status).toBe("cooling");
 	expect(credential.cooldowns[0]).toMatchObject({ model: "claude-fable-5-1", reason: "quota" });
 	expect(credential.quota.windows).toEqual([
@@ -36,7 +36,7 @@ test("anthropic unified windows fold into 5-hour, weekly, weekly opus", () => {
 });
 
 test("codex primary window, credits, plan, and named families", () => {
-	const credential = byName("codex-altay@uinaf.dev.json");
+	const credential = byName("codex-two@example.com.json");
 	expect(credential.status).toBe("active");
 	expect(credential.plan).toBe("pro");
 	expect(credential.websockets).toBe(true);
@@ -49,7 +49,7 @@ test("codex primary window, credits, plan, and named families", () => {
 });
 
 test("xai reports counts without windows", () => {
-	const credential = byName("xai-altay@uinaf.dev.json");
+	const credential = byName("xai-two@example.com.json");
 	expect(credential.quota.windows).toEqual([]);
 	expect(credential.success).toBe(55);
 	expect(credential.recentRequests).toHaveLength(20);

@@ -49,7 +49,7 @@ if (existsSync(".env.local")) {
 			: `.env.local is missing ${missing.join(", ")}; run \`pnpm run env\``,
 	);
 } else {
-	report("skip", "no .env.local; run `pnpm run env` to point dev at the t102 gateway");
+	report("skip", "no .env.local; run `pnpm run env` to point dev at a gateway");
 }
 
 const url = env.GATEWAI_MANAGEMENT_URL;

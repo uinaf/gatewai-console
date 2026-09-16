@@ -20,7 +20,7 @@ record: [#1](https://github.com/uinaf/gatewai-console/issues/1). Visual brief:
   dropped at decode), `ManagementApi` over `HttpClient`, and the quota
   normaliser that folds provider headers into `QuotaWindow`s. Reads retry
   twice on transient failures; `usage-queue` never retries because popping
-  consumes. Contract tests run on redacted fixtures captured from t102.
+  consumes. Contract tests run on redacted fixtures captured from a live gateway.
 - SQLite through Effect SQL: `@effect/sql-sqlite-node` (`node:sqlite` underneath,
   no native build) provides `SqlClient`; `effect/unstable/sql` owns queries,
   models, and the migrator. Migrations are Effects in `src/db/migrations.ts`,
@@ -45,8 +45,7 @@ record: [#1](https://github.com/uinaf/gatewai-console/issues/1). Visual brief:
   a crossing opens one row in `alert_incidents` and closes it on clear.
   Delivery is a Better Stack heartbeat per rule: firing posts `<url>/fail`
   with the detail, clearing posts `<url>`. Hosts hold heartbeat URLs only,
-  never the Uptime API token, matching zebroid-infra's policy; undelivered
-  transitions retry on the next pass.
+  never the Uptime API token; every pass posts each rule's current state.
 - Runtime image: distroless `nodejs24`, UID 1000, read-only root, only `/data`
   writable, port 8080, no shell. Runtime Node lags `.node-version` by a few
   patch releases; keep `node:sqlite` usage to APIs both have. A bind-mounted
@@ -59,7 +58,7 @@ on PATH. Scripts are in [package.json](package.json).
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm run env                  # .env.local from 1Password (op signin first); never prints values
+pnpm run env                  # .env.local from 1Password (OP_ITEM, GATEWAI_MANAGEMENT_URL); never prints values
 pnpm run doctor               # read-only: toolchain pins, env, gateway reachable
 PORT=3000 pnpm run dev        # strict port: a collision fails instead of drifting
 vp check                      # oxfmt + oxlint + typecheck
@@ -78,7 +77,7 @@ Runtime environment: `GATEWAI_DB_PATH` (default `data/console.sqlite`) in
 (default loopback `8317`) and `GATEWAI_MANAGEMENT_KEY` or
 `GATEWAI_MANAGEMENT_KEY_FILE`, `GATEWAI_MANAGEMENT_TIMEOUT` in
 [src/server/management/api.ts](src/server/management/api.ts);
-`GATEWAI_HOST_LABEL` (`t102`, `eu`) in [src/functions/pools.ts](src/functions/pools.ts);
+`GATEWAI_HOST_LABEL` (a short host label) in [src/functions/pools.ts](src/functions/pools.ts);
 `GATEWAI_COLLECT`, `GATEWAI_CLIENTS_FILE` in [src/server/ledger/](src/server/ledger/);
 `GATEWAI_ALERTS_FILE` in [src/server/alerts/rules.ts](src/server/alerts/rules.ts);
 `PORT` and `HOST` by nitro. Container defaults are in the [Dockerfile](Dockerfile).
@@ -108,10 +107,9 @@ Runtime environment: `GATEWAI_DB_PATH` (default `data/console.sqlite`) in
 
 ## Dev against live
 
-[#3](https://github.com/uinaf/gatewai-console/issues/3) owns the convention:
 `GATEWAI_MANAGEMENT_URL` and `GATEWAI_MANAGEMENT_KEY` from the operator's vault
-in `.env.local` (gitignored, see `.env.example`), pointed at the t102 gateway.
-`vp dev` loads it. `curl -s localhost:3000/api/pools` prints the normalised
+in `.env.local` (gitignored, see `.env.example`); `pnpm run env` writes it
+from 1Password given `OP_ITEM` and the url. `vp dev` loads it. `curl -s localhost:3000/api/pools` prints the normalised
 pools; the key never appears in the payload or the log.
 
 ## Layout
@@ -142,8 +140,8 @@ pools; the key never appears in the payload or the log.
   `gh pr comment <n> --attach`, never commit them.
 - `release.yml` on push to `main` re-runs verify, then pushes
   `ghcr.io/uinaf/gatewai-console` tagged `sha-<sha>`, the package version, and
-  `latest`, with the digest in the job summary. Deployment is
-  [zebroid-infra#124](https://github.com/uinaf/zebroid-infra/issues/124).
+  `latest`, with the digest in the job summary. Deployment lives in the
+  operator's infrastructure repo and pins that digest.
 - Renovate extends `uinaf/renovate-config`.
 
 ## Repository Skills

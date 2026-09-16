@@ -57,7 +57,7 @@ are real, values are illustrative.
 
 ```json
 {
-	"name": "codex-altay@uinaf.dev",
+	"name": "codex-one@example.com",
 	"provider": "codex",
 	"account_type": "pro",
 	"status": "active",
@@ -128,7 +128,7 @@ aggregates only; the browser never gets raw rows.
 	"client": "macbook",
 	"provider": "codex",
 	"model": "gpt-6-astra",
-	"auth_index": "codex-altay@uinaf.dev",
+	"auth_index": "codex-one@example.com",
 	"stream": true,
 	"failed": false,
 	"latency_ms": 8420,
@@ -141,8 +141,7 @@ aggregates only; the browser never gets raw rows.
 }
 ```
 
-Clients are named consumers: `macbook`, `devbox`, `hindsight`, `agents`,
-`atakan`. Unknown keys show as a 16-char fingerprint.
+Clients are named consumers: `macbook`, `devbox`, `agents`, `ci`. Unknown keys show as a 16-char fingerprint.
 
 Aggregates the ledger screen must carry per client, per model, per provider,
 per credential, for a time range and its previous range:
@@ -213,7 +212,7 @@ collector stalled.
    history table. Dashed danger-zone treatment for anything currently firing.
 
 **Topbar**, one row: product name, the three sections with the current-page
-marker, host name (`t102` or `eu`), operator login from the tailnet, and an
+marker, host name (a short label per gateway), operator login from the tailnet, and an
 "observed 12 s ago" stamp that becomes a stale warning after 90 s.
 
 No settings pages, no config editing, no login form, no empty-state
