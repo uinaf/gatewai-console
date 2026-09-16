@@ -77,4 +77,9 @@ export const migrations = {
 		)`;
 		yield* sql`CREATE TABLE collector_state (key text PRIMARY KEY NOT NULL, value text NOT NULL)`;
 	}),
+	// Requests carry the proxy's auth_index, not the credential file name.
+	"0003_credential_auth_index": Effect.gen(function* () {
+		const sql = yield* SqlClient.SqlClient;
+		yield* sql`ALTER TABLE credentials ADD COLUMN auth_index text`;
+	}),
 };

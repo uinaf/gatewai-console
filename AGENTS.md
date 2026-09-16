@@ -81,7 +81,17 @@ Runtime environment: `GATEWAI_DB_PATH` (default `data/console.sqlite`) in
   fixtures. Production reads it from a container secret file.
 - One console per proxy. Popping the usage queue consumes it.
 - Product routes follow the shared design canvas one screen per PR. Pools is
-  live at `/`; ledger and alerts are inert nav entries until they land.
+  live at `/`, ledger at `/ledger`; alerts is an inert nav entry until it lands.
+- Ledger pages read aggregates only (`src/server/ledger/queries.ts`); raw
+  request rows never leave the server. Percentiles are computed in process
+  from sorted latencies, which measured 86 ms for a 90-day breakdown over
+  60k rows.
+- Charts follow the dataviz skill on top of the design tokens: two quota
+  lines differ by dash as well as hue, model-share segments carry provider
+  hues with 2px gaps, a legend and a table view always exist, and the
+  crosshair readout lists every series. The uinaf accent and slime hues fail
+  the skill's generic dark-mode lightness band by design; identity is never
+  colour alone.
 - The browser never talks to the proxy. Pages load through server functions in
   `src/functions/`, which run inside the `ManagedRuntime`.
 
@@ -103,7 +113,8 @@ pools; the key never appears in the payload or the log.
 | `src/server/health.ts`    | `/healthz` payload: version, uptime, db reachability |
 | `src/server/management/`  | `ManagementApi`, wire schemas, quota normaliser      |
 | `src/routes/api/pools.ts` | Normalised credentials for the pools screen          |
-| `src/server/ledger/`      | Collector loops, ledger store, client key registry   |
+| `src/server/ledger/`      | Collector loops, store, queries, client key registry |
+| `src/routes/ledger.tsx`   | Ledger screen: range, breakdowns, quota history      |
 | `src/db/migrations.ts`    | Migration Effects: `meta`, then the ledger tables    |
 | `.github/workflows/`      | `verify` (PR, merge queue, call), `scan`, `release`  |
 
