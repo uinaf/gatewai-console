@@ -1,0 +1,1258 @@
+{
+	"observed_at": "2026-09-16T15:01:57.038963298Z",
+	"files": [
+		{
+			"account_type": "oauth",
+			"auth_index": "92585e3a5c7453d2",
+			"cooldowns": [],
+			"disabled": false,
+			"email": "one@example.com",
+			"failed": 1,
+			"id": "claude-one@example.com.json",
+			"label": "one@example.com",
+			"last_refresh": "2026-09-16T20:03:30.893872518+08:00",
+			"model_quotas": {
+				"claude-fable-5-1": {
+					"observed_at": "2026-09-16T21:27:43.757051685+08:00",
+					"signals": {
+						"Anthropic-Ratelimit-Unified-5h-Reset": "1789576800",
+						"Anthropic-Ratelimit-Unified-5h-Status": "allowed",
+						"Anthropic-Ratelimit-Unified-5h-Utilization": "0.11",
+						"Anthropic-Ratelimit-Unified-7d-Reset": "1790024400",
+						"Anthropic-Ratelimit-Unified-7d-Status": "allowed",
+						"Anthropic-Ratelimit-Unified-7d-Utilization": "0.06",
+						"Anthropic-Ratelimit-Unified-7d_oi-Reset": "1790024400",
+						"Anthropic-Ratelimit-Unified-7d_oi-Status": "allowed",
+						"Anthropic-Ratelimit-Unified-7d_oi-Utilization": "0.13",
+						"Anthropic-Ratelimit-Unified-Fallback-Percentage": "0.5",
+						"Anthropic-Ratelimit-Unified-Overage-Disabled-Reason": "org_level_disabled",
+						"Anthropic-Ratelimit-Unified-Overage-Status": "rejected",
+						"Anthropic-Ratelimit-Unified-Representative-Claim": "five_hour",
+						"Anthropic-Ratelimit-Unified-Reset": "1789576800",
+						"Anthropic-Ratelimit-Unified-Status": "allowed"
+					}
+				},
+				"claude-haiku-4-5-20251001": {
+					"observed_at": "2026-09-16T13:33:48.750224143+08:00",
+					"signals": {
+						"Anthropic-Ratelimit-Unified-5h-Reset": "1789554000",
+						"Anthropic-Ratelimit-Unified-5h-Status": "allowed",
+						"Anthropic-Ratelimit-Unified-5h-Utilization": "0.03",
+						"Anthropic-Ratelimit-Unified-7d-Reset": "1790024400",
+						"Anthropic-Ratelimit-Unified-7d-Status": "allowed",
+						"Anthropic-Ratelimit-Unified-7d-Utilization": "0.02",
+						"Anthropic-Ratelimit-Unified-Fallback-Percentage": "0.5",
+						"Anthropic-Ratelimit-Unified-Overage-Disabled-Reason": "org_level_disabled",
+						"Anthropic-Ratelimit-Unified-Overage-Status": "rejected",
+						"Anthropic-Ratelimit-Unified-Representative-Claim": "five_hour",
+						"Anthropic-Ratelimit-Unified-Reset": "1789554000",
+						"Anthropic-Ratelimit-Unified-Status": "allowed"
+					}
+				}
+			},
+			"name": "claude-one@example.com.json",
+			"provider": "claude",
+			"quota": {
+				"observed_at": "2026-09-16T21:27:43.757051685+08:00",
+				"signals": {
+					"Anthropic-Ratelimit-Unified-5h-Reset": "1789576800",
+					"Anthropic-Ratelimit-Unified-5h-Status": "allowed",
+					"Anthropic-Ratelimit-Unified-5h-Utilization": "0.11",
+					"Anthropic-Ratelimit-Unified-7d-Reset": "1790024400",
+					"Anthropic-Ratelimit-Unified-7d-Status": "allowed",
+					"Anthropic-Ratelimit-Unified-7d-Utilization": "0.06",
+					"Anthropic-Ratelimit-Unified-7d_oi-Reset": "1790024400",
+					"Anthropic-Ratelimit-Unified-7d_oi-Status": "allowed",
+					"Anthropic-Ratelimit-Unified-7d_oi-Utilization": "0.13",
+					"Anthropic-Ratelimit-Unified-Fallback-Percentage": "0.5",
+					"Anthropic-Ratelimit-Unified-Overage-Disabled-Reason": "org_level_disabled",
+					"Anthropic-Ratelimit-Unified-Overage-Status": "rejected",
+					"Anthropic-Ratelimit-Unified-Representative-Claim": "five_hour",
+					"Anthropic-Ratelimit-Unified-Reset": "1789576800",
+					"Anthropic-Ratelimit-Unified-Status": "allowed"
+				}
+			},
+			"recent_requests": [
+				{
+					"time": "19:50-20:00",
+					"success": 7,
+					"failed": 0
+				},
+				{
+					"time": "20:00-20:10",
+					"success": 44,
+					"failed": 0
+				},
+				{
+					"time": "20:10-20:20",
+					"success": 23,
+					"failed": 0
+				},
+				{
+					"time": "20:20-20:30",
+					"success": 29,
+					"failed": 0
+				},
+				{
+					"time": "20:30-20:40",
+					"success": 9,
+					"failed": 0
+				},
+				{
+					"time": "20:40-20:50",
+					"success": 18,
+					"failed": 0
+				},
+				{
+					"time": "20:50-21:00",
+					"success": 20,
+					"failed": 0
+				},
+				{
+					"time": "21:00-21:10",
+					"success": 1,
+					"failed": 0
+				},
+				{
+					"time": "21:10-21:20",
+					"success": 3,
+					"failed": 0
+				},
+				{
+					"time": "21:20-21:30",
+					"success": 2,
+					"failed": 0
+				},
+				{
+					"time": "21:30-21:40",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:40-21:50",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:50-22:00",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:00-22:10",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:10-22:20",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:20-22:30",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:30-22:40",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:40-22:50",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:50-23:00",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "23:00-23:10",
+					"success": 0,
+					"failed": 0
+				}
+			],
+			"status": "active",
+			"status_message": "",
+			"success": 543,
+			"type": "claude",
+			"unavailable": false
+		},
+		{
+			"account_type": "oauth",
+			"auth_index": "86342c78f8feed61",
+			"cooldowns": [
+				{
+					"scope": "model",
+					"model_key": "claude-fable-5-1",
+					"reason": "quota",
+					"retry_at": "2026-09-19T08:00:25.318413012Z",
+					"remaining_seconds": 233909,
+					"backoff_level": 0,
+					"http_status": 429
+				}
+			],
+			"disabled": false,
+			"email": "two@example.com",
+			"failed": 4,
+			"id": "claude-two@example.com.json",
+			"label": "two@example.com",
+			"last_refresh": "2026-09-16T22:19:24.978888076+08:00",
+			"model_quotas": {
+				"claude-fable-5-1": {
+					"observed_at": "2026-09-16T14:53:35.318413012+08:00",
+					"signals": {
+						"Anthropic-Ratelimit-Unified-5h-Reset": "1789554600",
+						"Anthropic-Ratelimit-Unified-5h-Status": "allowed",
+						"Anthropic-Ratelimit-Unified-5h-Utilization": "0.17",
+						"Anthropic-Ratelimit-Unified-7d-Reset": "1789804800",
+						"Anthropic-Ratelimit-Unified-7d-Status": "allowed",
+						"Anthropic-Ratelimit-Unified-7d-Utilization": "0.5",
+						"Anthropic-Ratelimit-Unified-7d_oi-Reset": "1789804800",
+						"Anthropic-Ratelimit-Unified-7d_oi-Status": "rejected",
+						"Anthropic-Ratelimit-Unified-7d_oi-Surpassed-Threshold": "1.0",
+						"Anthropic-Ratelimit-Unified-7d_oi-Utilization": "1.0",
+						"Anthropic-Ratelimit-Unified-Fallback-Percentage": "0.5",
+						"Anthropic-Ratelimit-Unified-Overage-Disabled-Reason": "out_of_credits",
+						"Anthropic-Ratelimit-Unified-Overage-Status": "rejected",
+						"Anthropic-Ratelimit-Unified-Representative-Claim": "seven_day_overage_included",
+						"Anthropic-Ratelimit-Unified-Reset": "1789804800",
+						"Anthropic-Ratelimit-Unified-Status": "rejected",
+						"Retry-After": "263184"
+					}
+				},
+				"claude-haiku-4-5-20251001": {
+					"observed_at": "2026-09-16T14:39:57.285118329+08:00",
+					"signals": {
+						"Anthropic-Ratelimit-Unified-5h-Reset": "1789554600",
+						"Anthropic-Ratelimit-Unified-5h-Status": "allowed",
+						"Anthropic-Ratelimit-Unified-5h-Utilization": "0.03",
+						"Anthropic-Ratelimit-Unified-7d-Reset": "1789804800",
+						"Anthropic-Ratelimit-Unified-7d-Status": "allowed",
+						"Anthropic-Ratelimit-Unified-7d-Utilization": "0.47",
+						"Anthropic-Ratelimit-Unified-Fallback-Percentage": "0.5",
+						"Anthropic-Ratelimit-Unified-Overage-Disabled-Reason": "out_of_credits",
+						"Anthropic-Ratelimit-Unified-Overage-Status": "rejected",
+						"Anthropic-Ratelimit-Unified-Representative-Claim": "five_hour",
+						"Anthropic-Ratelimit-Unified-Reset": "1789554600",
+						"Anthropic-Ratelimit-Unified-Status": "allowed"
+					}
+				},
+				"claude-opus-5": {
+					"observed_at": "2026-09-16T05:09:15.271206688+08:00",
+					"signals": {
+						"Anthropic-Ratelimit-Unified-5h-Reset": "1789517400",
+						"Anthropic-Ratelimit-Unified-5h-Status": "allowed",
+						"Anthropic-Ratelimit-Unified-5h-Utilization": "0.01",
+						"Anthropic-Ratelimit-Unified-7d-Reset": "1789804800",
+						"Anthropic-Ratelimit-Unified-7d-Status": "allowed",
+						"Anthropic-Ratelimit-Unified-7d-Utilization": "0.46",
+						"Anthropic-Ratelimit-Unified-Fallback-Percentage": "0.5",
+						"Anthropic-Ratelimit-Unified-Overage-Disabled-Reason": "out_of_credits",
+						"Anthropic-Ratelimit-Unified-Overage-Status": "rejected",
+						"Anthropic-Ratelimit-Unified-Representative-Claim": "five_hour",
+						"Anthropic-Ratelimit-Unified-Reset": "1789517400",
+						"Anthropic-Ratelimit-Unified-Status": "allowed"
+					}
+				}
+			},
+			"name": "claude-two@example.com.json",
+			"provider": "claude",
+			"quota": {
+				"signals": {}
+			},
+			"recent_requests": [
+				{
+					"time": "19:50-20:00",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "20:00-20:10",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "20:10-20:20",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "20:20-20:30",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "20:30-20:40",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "20:40-20:50",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "20:50-21:00",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:00-21:10",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:10-21:20",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:20-21:30",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:30-21:40",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:40-21:50",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:50-22:00",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:00-22:10",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:10-22:20",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:20-22:30",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:30-22:40",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:40-22:50",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:50-23:00",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "23:00-23:10",
+					"success": 0,
+					"failed": 0
+				}
+			],
+			"status": "active",
+			"status_message": "",
+			"success": 412,
+			"type": "claude",
+			"unavailable": false
+		},
+		{
+			"account_type": "oauth",
+			"auth_index": "8bfdcfdeba56f609",
+			"cooldowns": [],
+			"disabled": false,
+			"email": "dev@example.com",
+			"failed": 2,
+			"id": "claude-dev@example.com.json",
+			"label": "dev@example.com",
+			"last_refresh": "2026-09-16T22:43:51.301138829+08:00",
+			"model_quotas": {
+				"claude-fable-5-1": {
+					"observed_at": "2026-09-16T23:01:56.968651035+08:00",
+					"signals": {
+						"Anthropic-Ratelimit-Unified-5h-Reset": "1789576800",
+						"Anthropic-Ratelimit-Unified-5h-Status": "allowed",
+						"Anthropic-Ratelimit-Unified-5h-Utilization": "0.15",
+						"Anthropic-Ratelimit-Unified-7d-Reset": "1790143200",
+						"Anthropic-Ratelimit-Unified-7d-Status": "allowed",
+						"Anthropic-Ratelimit-Unified-7d-Utilization": "0.13",
+						"Anthropic-Ratelimit-Unified-7d_oi-Reset": "1790143200",
+						"Anthropic-Ratelimit-Unified-7d_oi-Status": "allowed",
+						"Anthropic-Ratelimit-Unified-7d_oi-Utilization": "0.26",
+						"Anthropic-Ratelimit-Unified-Fallback-Percentage": "0.5",
+						"Anthropic-Ratelimit-Unified-Overage-Disabled-Reason": "org_level_disabled",
+						"Anthropic-Ratelimit-Unified-Overage-Status": "rejected",
+						"Anthropic-Ratelimit-Unified-Representative-Claim": "five_hour",
+						"Anthropic-Ratelimit-Unified-Reset": "1789576800",
+						"Anthropic-Ratelimit-Unified-Status": "allowed"
+					}
+				},
+				"claude-haiku-4-5-20251001": {
+					"observed_at": "2026-09-16T20:55:35.476121229+08:00",
+					"signals": {
+						"Anthropic-Ratelimit-Unified-5h-Reset": "1789576800",
+						"Anthropic-Ratelimit-Unified-5h-Status": "allowed",
+						"Anthropic-Ratelimit-Unified-5h-Utilization": "0.09",
+						"Anthropic-Ratelimit-Unified-7d-Reset": "1790143200",
+						"Anthropic-Ratelimit-Unified-7d-Status": "allowed",
+						"Anthropic-Ratelimit-Unified-7d-Utilization": "0.12",
+						"Anthropic-Ratelimit-Unified-Fallback-Percentage": "0.5",
+						"Anthropic-Ratelimit-Unified-Overage-Disabled-Reason": "org_level_disabled",
+						"Anthropic-Ratelimit-Unified-Overage-Status": "rejected",
+						"Anthropic-Ratelimit-Unified-Representative-Claim": "five_hour",
+						"Anthropic-Ratelimit-Unified-Reset": "1789576800",
+						"Anthropic-Ratelimit-Unified-Status": "allowed"
+					}
+				}
+			},
+			"name": "claude-dev@example.com.json",
+			"provider": "claude",
+			"quota": {
+				"observed_at": "2026-09-16T23:01:56.968651035+08:00",
+				"signals": {
+					"Anthropic-Ratelimit-Unified-5h-Reset": "1789576800",
+					"Anthropic-Ratelimit-Unified-5h-Status": "allowed",
+					"Anthropic-Ratelimit-Unified-5h-Utilization": "0.15",
+					"Anthropic-Ratelimit-Unified-7d-Reset": "1790143200",
+					"Anthropic-Ratelimit-Unified-7d-Status": "allowed",
+					"Anthropic-Ratelimit-Unified-7d-Utilization": "0.13",
+					"Anthropic-Ratelimit-Unified-7d_oi-Reset": "1790143200",
+					"Anthropic-Ratelimit-Unified-7d_oi-Status": "allowed",
+					"Anthropic-Ratelimit-Unified-7d_oi-Utilization": "0.26",
+					"Anthropic-Ratelimit-Unified-Fallback-Percentage": "0.5",
+					"Anthropic-Ratelimit-Unified-Overage-Disabled-Reason": "org_level_disabled",
+					"Anthropic-Ratelimit-Unified-Overage-Status": "rejected",
+					"Anthropic-Ratelimit-Unified-Representative-Claim": "five_hour",
+					"Anthropic-Ratelimit-Unified-Reset": "1789576800",
+					"Anthropic-Ratelimit-Unified-Status": "allowed"
+				}
+			},
+			"recent_requests": [
+				{
+					"time": "19:50-20:00",
+					"success": 17,
+					"failed": 0
+				},
+				{
+					"time": "20:00-20:10",
+					"success": 52,
+					"failed": 0
+				},
+				{
+					"time": "20:10-20:20",
+					"success": 30,
+					"failed": 0
+				},
+				{
+					"time": "20:20-20:30",
+					"success": 10,
+					"failed": 0
+				},
+				{
+					"time": "20:30-20:40",
+					"success": 12,
+					"failed": 0
+				},
+				{
+					"time": "20:40-20:50",
+					"success": 11,
+					"failed": 0
+				},
+				{
+					"time": "20:50-21:00",
+					"success": 35,
+					"failed": 0
+				},
+				{
+					"time": "21:00-21:10",
+					"success": 40,
+					"failed": 0
+				},
+				{
+					"time": "21:10-21:20",
+					"success": 1,
+					"failed": 0
+				},
+				{
+					"time": "21:20-21:30",
+					"success": 10,
+					"failed": 0
+				},
+				{
+					"time": "21:30-21:40",
+					"success": 2,
+					"failed": 0
+				},
+				{
+					"time": "21:40-21:50",
+					"success": 4,
+					"failed": 0
+				},
+				{
+					"time": "21:50-22:00",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:00-22:10",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:10-22:20",
+					"success": 1,
+					"failed": 0
+				},
+				{
+					"time": "22:20-22:30",
+					"success": 23,
+					"failed": 0
+				},
+				{
+					"time": "22:30-22:40",
+					"success": 13,
+					"failed": 0
+				},
+				{
+					"time": "22:40-22:50",
+					"success": 3,
+					"failed": 0
+				},
+				{
+					"time": "22:50-23:00",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "23:00-23:10",
+					"success": 2,
+					"failed": 0
+				}
+			],
+			"status": "active",
+			"status_message": "",
+			"success": 993,
+			"type": "claude",
+			"unavailable": false
+		},
+		{
+			"account_type": "oauth",
+			"auth_index": "66910f7ae8eac3fe",
+			"cooldowns": [],
+			"disabled": false,
+			"email": "one@example.com",
+			"failed": 0,
+			"id": "codex-one@example.com.json",
+			"label": "one@example.com",
+			"model_quotas": {
+				"gpt-5.6-luna": {
+					"observed_at": "2026-09-16T20:03:34.378591157+08:00",
+					"signals": {
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Allowed": "true",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Limit-Name": "GPT-5.3-Codex-Spark",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Limit-Reached": "false",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Primary-Reset-After-Seconds": "18000",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Primary-Reset-At": "1789578211",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Primary-Used-Percent": "0",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Primary-Window-Minutes": "300",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Secondary-Reset-After-Seconds": "604800",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Secondary-Reset-At": "1790165011",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Secondary-Used-Percent": "0",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Secondary-Window-Minutes": "10080",
+						"X-Codex-Allowed": "true",
+						"X-Codex-Credits-Balance": "0",
+						"X-Codex-Credits-Has-Credits": "false",
+						"X-Codex-Credits-Unlimited": "false",
+						"X-Codex-Limit-Reached": "false",
+						"X-Codex-Plan-Type": "pro",
+						"X-Codex-Primary-Reset-After-Seconds": "248768",
+						"X-Codex-Primary-Reset-At": "1789808978",
+						"X-Codex-Primary-Used-Percent": "89",
+						"X-Codex-Primary-Window-Minutes": "10080"
+					}
+				},
+				"gpt-5.6-sol": {
+					"observed_at": "2026-09-16T21:04:14.896420239+08:00",
+					"signals": {
+						"X-Codex-Active-Limit": "premium",
+						"X-Codex-Bengalfox-Limit-Name": "GPT-5.3-Codex-Spark",
+						"X-Codex-Bengalfox-Primary-Over-Secondary-Limit-Percent": "0",
+						"X-Codex-Bengalfox-Primary-Reset-After-Seconds": "18000",
+						"X-Codex-Bengalfox-Primary-Reset-At": "1789581842",
+						"X-Codex-Bengalfox-Primary-Used-Percent": "0",
+						"X-Codex-Bengalfox-Primary-Window-Minutes": "300",
+						"X-Codex-Bengalfox-Secondary-Reset-After-Seconds": "604800",
+						"X-Codex-Bengalfox-Secondary-Reset-At": "1790168642",
+						"X-Codex-Bengalfox-Secondary-Used-Percent": "0",
+						"X-Codex-Bengalfox-Secondary-Window-Minutes": "10080",
+						"X-Codex-Credits-Balance": "0",
+						"X-Codex-Credits-Has-Credits": "False",
+						"X-Codex-Credits-Unlimited": "False",
+						"X-Codex-Plan-Type": "pro",
+						"X-Codex-Primary-Over-Secondary-Limit-Percent": "0",
+						"X-Codex-Primary-Reset-After-Seconds": "245137",
+						"X-Codex-Primary-Reset-At": "1789808978",
+						"X-Codex-Primary-Used-Percent": "89",
+						"X-Codex-Primary-Window-Minutes": "10080",
+						"X-Codex-Secondary-Reset-After-Seconds": "0",
+						"X-Codex-Secondary-Used-Percent": "0",
+						"X-Codex-Secondary-Window-Minutes": "0"
+					}
+				},
+				"gpt-6-astra": {
+					"observed_at": "2026-09-16T16:41:08.853658101+08:00",
+					"signals": {
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Allowed": "true",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Limit-Name": "GPT-5.3-Codex-Spark",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Limit-Reached": "false",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Primary-Reset-After-Seconds": "18000",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Primary-Reset-At": "1789566064",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Primary-Used-Percent": "0",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Primary-Window-Minutes": "300",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Secondary-Reset-After-Seconds": "604800",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Secondary-Reset-At": "1790152864",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Secondary-Used-Percent": "0",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Secondary-Window-Minutes": "10080",
+						"X-Codex-Allowed": "true",
+						"X-Codex-Credits-Balance": "0",
+						"X-Codex-Credits-Has-Credits": "false",
+						"X-Codex-Credits-Unlimited": "false",
+						"X-Codex-Limit-Reached": "false",
+						"X-Codex-Plan-Type": "pro",
+						"X-Codex-Primary-Reset-After-Seconds": "260915",
+						"X-Codex-Primary-Reset-At": "1789808978",
+						"X-Codex-Primary-Used-Percent": "89",
+						"X-Codex-Primary-Window-Minutes": "10080"
+					}
+				}
+			},
+			"name": "codex-one@example.com.json",
+			"provider": "codex",
+			"quota": {
+				"observed_at": "2026-09-16T21:04:14.896420239+08:00",
+				"signals": {
+					"X-Codex-Active-Limit": "premium",
+					"X-Codex-Bengalfox-Limit-Name": "GPT-5.3-Codex-Spark",
+					"X-Codex-Bengalfox-Primary-Over-Secondary-Limit-Percent": "0",
+					"X-Codex-Bengalfox-Primary-Reset-After-Seconds": "18000",
+					"X-Codex-Bengalfox-Primary-Reset-At": "1789581842",
+					"X-Codex-Bengalfox-Primary-Used-Percent": "0",
+					"X-Codex-Bengalfox-Primary-Window-Minutes": "300",
+					"X-Codex-Bengalfox-Secondary-Reset-After-Seconds": "604800",
+					"X-Codex-Bengalfox-Secondary-Reset-At": "1790168642",
+					"X-Codex-Bengalfox-Secondary-Used-Percent": "0",
+					"X-Codex-Bengalfox-Secondary-Window-Minutes": "10080",
+					"X-Codex-Credits-Balance": "0",
+					"X-Codex-Credits-Has-Credits": "False",
+					"X-Codex-Credits-Unlimited": "False",
+					"X-Codex-Plan-Type": "pro",
+					"X-Codex-Primary-Over-Secondary-Limit-Percent": "0",
+					"X-Codex-Primary-Reset-After-Seconds": "245137",
+					"X-Codex-Primary-Reset-At": "1789808978",
+					"X-Codex-Primary-Used-Percent": "89",
+					"X-Codex-Primary-Window-Minutes": "10080",
+					"X-Codex-Secondary-Reset-After-Seconds": "0",
+					"X-Codex-Secondary-Used-Percent": "0",
+					"X-Codex-Secondary-Window-Minutes": "0"
+				}
+			},
+			"recent_requests": [
+				{
+					"time": "19:50-20:00",
+					"success": 2,
+					"failed": 0
+				},
+				{
+					"time": "20:00-20:10",
+					"success": 2,
+					"failed": 0
+				},
+				{
+					"time": "20:10-20:20",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "20:20-20:30",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "20:30-20:40",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "20:40-20:50",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "20:50-21:00",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:00-21:10",
+					"success": 10,
+					"failed": 0
+				},
+				{
+					"time": "21:10-21:20",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:20-21:30",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:30-21:40",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:40-21:50",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:50-22:00",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:00-22:10",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:10-22:20",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:20-22:30",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:30-22:40",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:40-22:50",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:50-23:00",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "23:00-23:10",
+					"success": 0,
+					"failed": 0
+				}
+			],
+			"status": "active",
+			"status_message": "",
+			"success": 153,
+			"type": "codex",
+			"unavailable": false,
+			"websockets": true
+		},
+		{
+			"account_type": "oauth",
+			"auth_index": "096d1e8172a75e82",
+			"cooldowns": [],
+			"disabled": false,
+			"email": "two@example.com",
+			"failed": 1,
+			"id": "codex-two@example.com.json",
+			"label": "two@example.com",
+			"model_quotas": {
+				"gpt-5.6-luna": {
+					"observed_at": "2026-09-16T20:55:00.116374519+08:00",
+					"signals": {
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Allowed": "true",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Limit-Name": "GPT-5.3-Codex-Spark",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Limit-Reached": "false",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Primary-Reset-After-Seconds": "18000",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Primary-Reset-At": "1789581298",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Primary-Used-Percent": "0",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Primary-Window-Minutes": "300",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Secondary-Reset-After-Seconds": "604800",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Secondary-Reset-At": "1790168098",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Secondary-Used-Percent": "0",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Secondary-Window-Minutes": "10080",
+						"X-Codex-Allowed": "true",
+						"X-Codex-Credits-Balance": "712.2495350000",
+						"X-Codex-Credits-Has-Credits": "true",
+						"X-Codex-Credits-Unlimited": "false",
+						"X-Codex-Limit-Reached": "false",
+						"X-Codex-Plan-Type": "pro",
+						"X-Codex-Primary-Reset-After-Seconds": "242408",
+						"X-Codex-Primary-Reset-At": "1789805706",
+						"X-Codex-Primary-Used-Percent": "77",
+						"X-Codex-Primary-Window-Minutes": "10080"
+					}
+				},
+				"gpt-5.6-sol": {
+					"observed_at": "2026-09-16T20:15:33.143496398+08:00",
+					"signals": {
+						"X-Codex-Active-Limit": "premium",
+						"X-Codex-Bengalfox-Limit-Name": "GPT-5.3-Codex-Spark",
+						"X-Codex-Bengalfox-Primary-Over-Secondary-Limit-Percent": "0",
+						"X-Codex-Bengalfox-Primary-Reset-After-Seconds": "18000",
+						"X-Codex-Bengalfox-Primary-Reset-At": "1789578926",
+						"X-Codex-Bengalfox-Primary-Used-Percent": "0",
+						"X-Codex-Bengalfox-Primary-Window-Minutes": "300",
+						"X-Codex-Bengalfox-Secondary-Reset-After-Seconds": "604800",
+						"X-Codex-Bengalfox-Secondary-Reset-At": "1790165726",
+						"X-Codex-Bengalfox-Secondary-Used-Percent": "0",
+						"X-Codex-Bengalfox-Secondary-Window-Minutes": "10080",
+						"X-Codex-Credits-Balance": "712.2495350000",
+						"X-Codex-Credits-Has-Credits": "True",
+						"X-Codex-Credits-Unlimited": "False",
+						"X-Codex-Plan-Type": "pro",
+						"X-Codex-Primary-Over-Secondary-Limit-Percent": "0",
+						"X-Codex-Primary-Reset-After-Seconds": "244781",
+						"X-Codex-Primary-Reset-At": "1789805706",
+						"X-Codex-Primary-Used-Percent": "77",
+						"X-Codex-Primary-Window-Minutes": "10080",
+						"X-Codex-Secondary-Reset-After-Seconds": "0",
+						"X-Codex-Secondary-Used-Percent": "0",
+						"X-Codex-Secondary-Window-Minutes": "0"
+					}
+				},
+				"gpt-6-astra": {
+					"observed_at": "2026-09-16T19:09:57.244456725+08:00",
+					"signals": {
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Allowed": "true",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Limit-Name": "GPT-5.3-Codex-Spark",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Limit-Reached": "false",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Primary-Reset-After-Seconds": "18000",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Primary-Reset-At": "1789574958",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Primary-Used-Percent": "0",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Primary-Window-Minutes": "300",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Secondary-Reset-After-Seconds": "604800",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Secondary-Reset-At": "1790161758",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Secondary-Used-Percent": "0",
+						"X-Codex-Additional-Gpt-5.3-Codex-Spark-Secondary-Window-Minutes": "10080",
+						"X-Codex-Allowed": "true",
+						"X-Codex-Credits-Balance": "712.2495350000",
+						"X-Codex-Credits-Has-Credits": "true",
+						"X-Codex-Credits-Unlimited": "false",
+						"X-Codex-Limit-Reached": "false",
+						"X-Codex-Plan-Type": "pro",
+						"X-Codex-Primary-Reset-After-Seconds": "248748",
+						"X-Codex-Primary-Reset-At": "1789805706",
+						"X-Codex-Primary-Used-Percent": "77",
+						"X-Codex-Primary-Window-Minutes": "10080"
+					}
+				}
+			},
+			"name": "codex-two@example.com.json",
+			"provider": "codex",
+			"quota": {
+				"observed_at": "2026-09-16T20:55:00.116374519+08:00",
+				"signals": {
+					"X-Codex-Additional-Gpt-5.3-Codex-Spark-Allowed": "true",
+					"X-Codex-Additional-Gpt-5.3-Codex-Spark-Limit-Name": "GPT-5.3-Codex-Spark",
+					"X-Codex-Additional-Gpt-5.3-Codex-Spark-Limit-Reached": "false",
+					"X-Codex-Additional-Gpt-5.3-Codex-Spark-Primary-Reset-After-Seconds": "18000",
+					"X-Codex-Additional-Gpt-5.3-Codex-Spark-Primary-Reset-At": "1789581298",
+					"X-Codex-Additional-Gpt-5.3-Codex-Spark-Primary-Used-Percent": "0",
+					"X-Codex-Additional-Gpt-5.3-Codex-Spark-Primary-Window-Minutes": "300",
+					"X-Codex-Additional-Gpt-5.3-Codex-Spark-Secondary-Reset-After-Seconds": "604800",
+					"X-Codex-Additional-Gpt-5.3-Codex-Spark-Secondary-Reset-At": "1790168098",
+					"X-Codex-Additional-Gpt-5.3-Codex-Spark-Secondary-Used-Percent": "0",
+					"X-Codex-Additional-Gpt-5.3-Codex-Spark-Secondary-Window-Minutes": "10080",
+					"X-Codex-Allowed": "true",
+					"X-Codex-Credits-Balance": "712.2495350000",
+					"X-Codex-Credits-Has-Credits": "true",
+					"X-Codex-Credits-Unlimited": "false",
+					"X-Codex-Limit-Reached": "false",
+					"X-Codex-Plan-Type": "pro",
+					"X-Codex-Primary-Reset-After-Seconds": "242408",
+					"X-Codex-Primary-Reset-At": "1789805706",
+					"X-Codex-Primary-Used-Percent": "77",
+					"X-Codex-Primary-Window-Minutes": "10080"
+				}
+			},
+			"recent_requests": [
+				{
+					"time": "19:50-20:00",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "20:00-20:10",
+					"success": 2,
+					"failed": 0
+				},
+				{
+					"time": "20:10-20:20",
+					"success": 3,
+					"failed": 0
+				},
+				{
+					"time": "20:20-20:30",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "20:30-20:40",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "20:40-20:50",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "20:50-21:00",
+					"success": 2,
+					"failed": 0
+				},
+				{
+					"time": "21:00-21:10",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:10-21:20",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:20-21:30",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:30-21:40",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:40-21:50",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:50-22:00",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:00-22:10",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:10-22:20",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:20-22:30",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:30-22:40",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:40-22:50",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:50-23:00",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "23:00-23:10",
+					"success": 0,
+					"failed": 0
+				}
+			],
+			"status": "active",
+			"status_message": "",
+			"success": 163,
+			"type": "codex",
+			"unavailable": false,
+			"websockets": true
+		},
+		{
+			"account_type": "oauth",
+			"auth_index": "8542ff1f7eba7f36",
+			"cooldowns": [],
+			"disabled": false,
+			"email": "one@example.com",
+			"failed": 0,
+			"id": "xai-one@example.com.json",
+			"label": "one@example.com",
+			"last_refresh": "2026-09-16T22:02:49.381871734+08:00",
+			"name": "xai-one@example.com.json",
+			"provider": "xai",
+			"quota": {
+				"signals": {}
+			},
+			"recent_requests": [
+				{
+					"time": "19:50-20:00",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "20:00-20:10",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "20:10-20:20",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "20:20-20:30",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "20:30-20:40",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "20:40-20:50",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "20:50-21:00",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:00-21:10",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:10-21:20",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:20-21:30",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:30-21:40",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:40-21:50",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:50-22:00",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:00-22:10",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:10-22:20",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:20-22:30",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:30-22:40",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:40-22:50",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:50-23:00",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "23:00-23:10",
+					"success": 0,
+					"failed": 0
+				}
+			],
+			"status": "active",
+			"status_message": "",
+			"success": 1,
+			"type": "xai",
+			"unavailable": false
+		},
+		{
+			"account_type": "oauth",
+			"auth_index": "cf6aebdc3561afb4",
+			"cooldowns": [],
+			"disabled": false,
+			"email": "two@example.com",
+			"failed": 0,
+			"id": "xai-two@example.com.json",
+			"label": "two@example.com",
+			"last_refresh": "2026-09-16T22:10:28.670098895+08:00",
+			"name": "xai-two@example.com.json",
+			"provider": "xai",
+			"quota": {
+				"signals": {}
+			},
+			"recent_requests": [
+				{
+					"time": "19:50-20:00",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "20:00-20:10",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "20:10-20:20",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "20:20-20:30",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "20:30-20:40",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "20:40-20:50",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "20:50-21:00",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:00-21:10",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:10-21:20",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:20-21:30",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:30-21:40",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:40-21:50",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "21:50-22:00",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:00-22:10",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:10-22:20",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:20-22:30",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:30-22:40",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:40-22:50",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "22:50-23:00",
+					"success": 0,
+					"failed": 0
+				},
+				{
+					"time": "23:00-23:10",
+					"success": 0,
+					"failed": 0
+				}
+			],
+			"status": "active",
+			"status_message": "",
+			"success": 55,
+			"type": "xai",
+			"unavailable": false
+		}
+	]
+}

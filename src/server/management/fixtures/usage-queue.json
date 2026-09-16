@@ -1,0 +1,150 @@
+[
+	{
+		"timestamp": "2026-09-16T23:02:38.683632372+08:00",
+		"latency_ms": 6909,
+		"ttft_ms": 1788,
+		"source": "dev@example.com",
+		"auth_index": "8bfdcfdeba56f609",
+		"access_token_sha256": "sha256:b1a2626a5b20e5e6",
+		"client_ip": "100.64.0.10",
+		"x_forwarded_for": "100.64.0.10",
+		"user_agent": "claude-cli/2.1.0",
+		"tokens": {
+			"input_tokens": 32,
+			"output_tokens": 412,
+			"reasoning_tokens": 0,
+			"cached_tokens": 168014,
+			"cache_read_tokens": 168014,
+			"cache_read_tokens_present": true,
+			"cache_creation_tokens": 701,
+			"total_tokens": 169159
+		},
+		"failed": false,
+		"generate": true,
+		"stream": true,
+		"fail": {
+			"status_code": 200,
+			"body": ""
+		},
+		"response_headers": {
+			"Anthropic-Ratelimit-Unified-5h-Reset": ["1789576800"],
+			"Anthropic-Ratelimit-Unified-5h-Status": ["allowed"],
+			"Anthropic-Ratelimit-Unified-5h-Utilization": ["0.15"],
+			"Anthropic-Ratelimit-Unified-7d-Reset": ["1790143200"],
+			"Anthropic-Ratelimit-Unified-7d-Status": ["allowed"],
+			"Anthropic-Ratelimit-Unified-7d-Utilization": ["0.13"],
+			"Anthropic-Ratelimit-Unified-7d_oi-Reset": ["1790143200"],
+			"Anthropic-Ratelimit-Unified-7d_oi-Status": ["allowed"],
+			"Anthropic-Ratelimit-Unified-7d_oi-Utilization": ["0.26"],
+			"Anthropic-Ratelimit-Unified-Fallback-Percentage": ["0.5"],
+			"Anthropic-Ratelimit-Unified-Overage-Disabled-Reason": ["org_level_disabled"],
+			"Anthropic-Ratelimit-Unified-Overage-Status": ["rejected"],
+			"Anthropic-Ratelimit-Unified-Representative-Claim": ["five_hour"],
+			"Anthropic-Ratelimit-Unified-Reset": ["1789576800"],
+			"Anthropic-Ratelimit-Unified-Status": ["allowed"]
+		},
+		"accounting_version": 2,
+		"token_breakdown": {
+			"schema_version": 2,
+			"quality": "complete",
+			"total_tokens": 169159,
+			"input": {
+				"total_tokens": 168747,
+				"uncached_tokens": 32,
+				"cache_read_tokens": 168014,
+				"cache_write_tokens": 701
+			},
+			"output": {
+				"total_tokens": 412,
+				"non_reasoning_tokens": 412,
+				"reasoning_tokens": 0
+			},
+			"unclassified_tokens": 0
+		},
+		"provider": "claude",
+		"executor_type": "ClaudeExecutor",
+		"model": "claude-fable-5-1",
+		"alias": "claude-fable-5-1",
+		"endpoint": "POST /v1/messages",
+		"auth_type": "oauth",
+		"api_key": "sha256:1c899a841a895958",
+		"request_id": "e3367809",
+		"session_id": "sha256:b7fbc3c103ddbd8a",
+		"reasoning_effort": "medium",
+		"service_tier": "auto"
+	},
+	{
+		"timestamp": "2026-09-16T23:02:46.703240313+08:00",
+		"latency_ms": 4025,
+		"ttft_ms": 1295,
+		"source": "dev@example.com",
+		"auth_index": "8bfdcfdeba56f609",
+		"access_token_sha256": "sha256:b1a2626a5b20e5e6",
+		"client_ip": "100.64.0.10",
+		"x_forwarded_for": "100.64.0.10",
+		"user_agent": "claude-cli/2.1.0",
+		"tokens": {
+			"input_tokens": 32,
+			"output_tokens": 291,
+			"reasoning_tokens": 0,
+			"cached_tokens": 168715,
+			"cache_read_tokens": 168715,
+			"cache_read_tokens_present": true,
+			"cache_creation_tokens": 555,
+			"total_tokens": 169593
+		},
+		"failed": false,
+		"generate": true,
+		"stream": true,
+		"fail": {
+			"status_code": 200,
+			"body": ""
+		},
+		"response_headers": {
+			"Anthropic-Ratelimit-Unified-5h-Reset": ["1789576800"],
+			"Anthropic-Ratelimit-Unified-5h-Status": ["allowed"],
+			"Anthropic-Ratelimit-Unified-5h-Utilization": ["0.15"],
+			"Anthropic-Ratelimit-Unified-7d-Reset": ["1790143200"],
+			"Anthropic-Ratelimit-Unified-7d-Status": ["allowed"],
+			"Anthropic-Ratelimit-Unified-7d-Utilization": ["0.13"],
+			"Anthropic-Ratelimit-Unified-7d_oi-Reset": ["1790143200"],
+			"Anthropic-Ratelimit-Unified-7d_oi-Status": ["allowed"],
+			"Anthropic-Ratelimit-Unified-7d_oi-Utilization": ["0.26"],
+			"Anthropic-Ratelimit-Unified-Fallback-Percentage": ["0.5"],
+			"Anthropic-Ratelimit-Unified-Overage-Disabled-Reason": ["org_level_disabled"],
+			"Anthropic-Ratelimit-Unified-Overage-Status": ["rejected"],
+			"Anthropic-Ratelimit-Unified-Representative-Claim": ["five_hour"],
+			"Anthropic-Ratelimit-Unified-Reset": ["1789576800"],
+			"Anthropic-Ratelimit-Unified-Status": ["allowed"]
+		},
+		"accounting_version": 2,
+		"token_breakdown": {
+			"schema_version": 2,
+			"quality": "complete",
+			"total_tokens": 169593,
+			"input": {
+				"total_tokens": 169302,
+				"uncached_tokens": 32,
+				"cache_read_tokens": 168715,
+				"cache_write_tokens": 555
+			},
+			"output": {
+				"total_tokens": 291,
+				"non_reasoning_tokens": 291,
+				"reasoning_tokens": 0
+			},
+			"unclassified_tokens": 0
+		},
+		"provider": "claude",
+		"executor_type": "ClaudeExecutor",
+		"model": "claude-fable-5-1",
+		"alias": "claude-fable-5-1",
+		"endpoint": "POST /v1/messages",
+		"auth_type": "oauth",
+		"api_key": "sha256:1c899a841a895958",
+		"request_id": "124e2898",
+		"session_id": "sha256:b7fbc3c103ddbd8a",
+		"reasoning_effort": "medium",
+		"service_tier": "auto"
+	}
+]
