@@ -46,7 +46,7 @@ Every environment variable and its default is listed in
 
 ```bash
 pnpm install --frozen-lockfile
-OP_ITEM=op://<vault>/<item> GATEWAI_MANAGEMENT_URL=... pnpm run env   # .env.local from 1Password, never prints values
+OP_ITEM='op://VAULT/ITEM' GATEWAI_MANAGEMENT_URL='https://gateway.example/v0/management' pnpm run env   # .env.local from 1Password, never prints values
 pnpm run doctor               # read-only: pins, env, gateway reachable
 PORT=3000 pnpm run dev        # strict port: a collision fails instead of drifting
 pnpm run verify               # the CI gate: audit, routes, check, design, tests, knip, build
