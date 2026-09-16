@@ -1,6 +1,5 @@
 import { Effect } from "effect";
-
-import { Database } from "#/server/database";
+import { SqlClient } from "effect/unstable/sql";
 
 export interface Health {
 	readonly ok: boolean;
@@ -9,12 +8,12 @@ export interface Health {
 	readonly db: "reachable" | "unreachable";
 }
 
-export const health: Effect.Effect<Health, never, Database> = Effect.gen(function* () {
-	const database = yield* Database;
-	const db = yield* database.ping.pipe(
+export const health: Effect.Effect<Health, never, SqlClient.SqlClient> = Effect.gen(function* () {
+	const sql = yield* SqlClient.SqlClient;
+	const db = yield* sql`select 1`.pipe(
 		Effect.as("reachable" as const),
-		Effect.catchTag("DatabaseError", (error) =>
-			Effect.logError("healthz: database unreachable", error.cause).pipe(
+		Effect.catchTag("SqlError", (error) =>
+			Effect.logError("healthz: database unreachable", error).pipe(
 				Effect.as("unreachable" as const),
 			),
 		),
