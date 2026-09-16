@@ -31,21 +31,21 @@
 		"@tanstack/react-start": "1.168.54",
 		"@uinaf/design": "^1.15.0",
 		"effect": "4.0.0-rc.115",
-		"react": "^19.2.0",
-		"react-dom": "^19.2.0"
+		"react": "^19.3.0",
+		"react-dom": "^19.3.0"
 	},
 	"devDependencies": {
-		"@tanstack/router-cli": "1.167.28",
-		"@types/node": "^24.0.0",
-		"@types/react": "^19.2.0",
-		"@types/react-dom": "^19.2.0",
-		"@vitejs/plugin-react": "^6.0.1",
-		"knip": "^6.32.2",
+		"@tanstack/router-cli": "1.167.36",
+		"@types/node": "^24.13.4",
+		"@types/react": "^19.3.0",
+		"@types/react-dom": "^19.3.0",
+		"@vitejs/plugin-react": "^6.1.1",
+		"knip": "^6.35.1",
 		"nitro": "latest",
 		"typescript": "^7.0.2",
 		"vite": "npm:@voidzero-dev/vite-plus-core@0.3.2",
 		"vite-plus": "0.3.2",
-		"vitest": "^4.1.10"
+		"vitest": "^5.0.1"
 	},
 	"engines": {
 		"node": ">=24.21.0"
