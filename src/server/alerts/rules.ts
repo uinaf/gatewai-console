@@ -26,15 +26,27 @@ export const Rule = Schema.Union([
 		...common,
 		kind: Schema.Literal("remaining"),
 		window: Schema.String,
-		remainingBelow: Schema.Number,
+		remainingBelow: Schema.Number.pipe(
+			Schema.check(Schema.isBetween({ minimum: 0, maximum: 100 })),
+		),
 	}),
 	Schema.Struct({ ...common, kind: Schema.Literal("cooldown") }),
 	Schema.Struct({ ...common, kind: Schema.Literal("unhealthy") }),
-	Schema.Struct({ ...common, kind: Schema.Literal("stalled"), minutes: Schema.Number }),
+	Schema.Struct({
+		...common,
+		kind: Schema.Literal("stalled"),
+		minutes: Schema.Number.pipe(Schema.check(Schema.isGreaterThan(0))),
+	}),
 ]);
 export type Rule = typeof Rule.Type;
 
-const RulesFile = Schema.Struct({ rules: Schema.Array(Rule) });
+const RulesFile = Schema.Struct({ rules: Schema.Array(Rule) }).pipe(
+	Schema.check(
+		Schema.makeFilter((file) => new Set(file.rules.map((r) => r.id)).size === file.rules.length, {
+			description: "rule ids must be unique",
+		}),
+	),
+);
 
 export const describe = (rule: Rule): string => {
 	switch (rule.kind) {

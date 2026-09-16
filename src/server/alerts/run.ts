@@ -13,7 +13,11 @@ import type { Pools } from "#/server/management/credential";
 // rule's current state: `/fail` while any subject fires, the plain URL when
 // none does. A subject that vanished from the pool clears.
 
-export const runAlerts = (pools: Pools, now: string) =>
+/**
+ * `pools` is null when the gateway could not be read: only collector rules run
+ * then, and credential subjects are left as they were rather than cleared.
+ */
+export const runAlerts = (pools: Pools | null, now: string) =>
 	Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;
 		const rules = yield* AlertRules;
@@ -22,10 +26,11 @@ export const runAlerts = (pools: Pools, now: string) =>
 		const collector = yield* readCollectorState;
 		const wasFiring = (ruleId: string, subject: string) =>
 			states.some((s) => s.rule_id === ruleId && s.subject === subject && s.firing === 1);
+		const applicable = pools ? rules : rules.filter((r) => r.kind === "stalled");
 		const results = evaluate(
-			rules,
+			applicable,
 			{
-				credentials: pools.credentials,
+				credentials: pools?.credentials ?? [],
 				lastPopAt: collector.lastPopAt,
 				startedAt: collector.startedAt,
 				now,
@@ -41,7 +46,7 @@ export const runAlerts = (pools: Pools, now: string) =>
 			if (transition === "fired") fired += 1;
 			if (transition === "cleared") cleared += 1;
 		}
-		cleared += yield* clearMissing(seen, now);
+		if (pools) cleared += yield* clearMissing(seen, now);
 		for (const rule of rules) {
 			if (!rule.heartbeat) continue;
 			const firingRows = yield* sql<{ detail: string | null }>`

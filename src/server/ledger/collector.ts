@@ -58,7 +58,11 @@ export const popOnce = Effect.gen(function* () {
 /** One auth-files poll: credentials upserted, a snapshot per credential when its quota changed. */
 export const snapshotOnce = Effect.gen(function* () {
 	const api = yield* ManagementApi;
-	const pools = yield* api.pools;
+	// A gateway outage is exactly when the stalled rule matters, so collector
+	// rules still run when the pools read fails.
+	const pools = yield* api.pools.pipe(
+		Effect.tapError(() => runAlerts(null, now()).pipe(Effect.ignore)),
+	);
 	const recordedAt = now();
 	yield* upsertCredentials(pools.credentials, recordedAt);
 	let recorded = 0;

@@ -23,6 +23,16 @@ type Transition = "fired" | "cleared" | "none";
 export const applyCondition = (condition: Condition, firing: boolean, now: string) =>
 	Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;
+		return yield* sql.withTransaction(applyConditionUnsafe(sql, condition, firing, now));
+	});
+
+const applyConditionUnsafe = (
+	sql: SqlClient.SqlClient,
+	condition: Condition,
+	firing: boolean,
+	now: string,
+) =>
+	Effect.gen(function* () {
 		const [current] = yield* sql<AlertState>`SELECT * FROM alert_state
 			WHERE rule_id = ${condition.ruleId} AND subject = ${condition.subject}`;
 		const was = (current?.firing ?? 0) === 1;

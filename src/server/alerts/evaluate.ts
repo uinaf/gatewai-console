@@ -40,7 +40,12 @@ export const evaluate = (
 ): ReadonlyArray<{ readonly condition: Condition; readonly firing: boolean }> =>
 	rules.flatMap((rule) => {
 		if (rule.kind === "stalled") {
-			const anchor = observation.lastPopAt ?? observation.startedAt;
+			// The later of the last pop and the start: a restart earns its window even with an old pop.
+			const anchor =
+				[observation.lastPopAt, observation.startedAt]
+					.filter((v): v is string => v !== null)
+					.sort()
+					.at(-1) ?? null;
 			const age = anchor
 				? (Date.parse(observation.now) - Date.parse(anchor)) / 60_000
 				: Number.POSITIVE_INFINITY;

@@ -7,6 +7,7 @@ import { HttpClient, HttpClientResponse } from "effect/unstable/http";
 import { expect, test } from "vitest";
 
 import { evaluate } from "#/server/alerts/evaluate";
+import { AlertRules } from "#/server/alerts/rules";
 import { runAlerts } from "#/server/alerts/run";
 import { listIncidents, readStates } from "#/server/alerts/store";
 import { Database } from "#/server/database";
@@ -220,4 +221,62 @@ test("a failed heartbeat post is retried on the next pass", async () => {
 	// The failed post changes no state; the next pass posts the same state again.
 	expect(posts).toEqual(["https://hb.test/abc/fail", "https://hb.test/abc/fail"]);
 	expect(states[0]?.firing).toBe(1);
+});
+
+test("rules with duplicate ids or out-of-range thresholds are rejected", async () => {
+	const dir = mkdtempSync(join(tmpdir(), "gatewai-alerts-"));
+	const bad = [
+		{ rules: [rule, rule] },
+		{ rules: [{ ...rule, remainingBelow: 101 }] },
+		{ rules: [{ id: "s", kind: "stalled", minutes: 0 }] },
+	];
+	for (const [i, file] of bad.entries()) {
+		writeFileSync(join(dir, `${i}.json`), JSON.stringify(file));
+		const rules = await AlertRules.pipe(
+			Effect.provide(
+				ConfigProvider.layer(
+					ConfigProvider.fromUnknown({ GATEWAI_ALERTS_FILE: join(dir, `${i}.json`) }),
+				),
+			),
+			Effect.runPromise,
+		);
+		expect(rules).toEqual([]);
+	}
+});
+
+test("a gateway outage still evaluates the stalled rule and leaves credential subjects alone", async () => {
+	const dir = mkdtempSync(join(tmpdir(), "gatewai-alerts-"));
+	writeFileSync(
+		join(dir, "alerts.json"),
+		JSON.stringify({ rules: [rule, { id: "stalled", kind: "stalled", minutes: 15 }] }),
+	);
+	const { layer } = sink();
+	const env = Layer.mergeAll(Database, layer).pipe(
+		Layer.provideMerge(
+			ConfigProvider.layer(
+				ConfigProvider.fromUnknown({
+					GATEWAI_DB_PATH: join(dir, "d.sqlite"),
+					GATEWAI_ALERTS_FILE: join(dir, "alerts.json"),
+				}),
+			),
+		),
+	);
+	const result = await Effect.gen(function* () {
+		yield* writeCollectorState({
+			last_pop_at: "2026-09-16T00:00:00Z",
+			started_at: "2026-09-15T00:00:00Z",
+		});
+		yield* runAlerts(
+			{ observedAt: "x", credentials: [withWeekly(codex, 95)] },
+			"2026-09-16T00:01:00Z",
+		);
+		const outage = yield* runAlerts(null, "2026-09-16T00:30:00Z");
+		const states = yield* readStates;
+		return { outage, states };
+	}).pipe(Effect.provide(env), Effect.runPromise);
+	expect(result.outage.fired).toBe(1);
+	expect(result.states.map((s) => [s.rule_id, s.firing])).toEqual([
+		[rule.id, 1],
+		["stalled", 1],
+	]);
 });
