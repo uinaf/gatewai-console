@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { ConfigProvider, Effect, Layer, Schema } from "effect";
+import { ClientRegistry } from "#/server/ledger/clients";
 import { SqlClient } from "effect/unstable/sql";
 import { expect, test } from "vitest";
 
@@ -111,4 +112,26 @@ test("maintainOnce rolls up stored hours and records the run", async () => {
 	// Both fixture records fall in the same hour; the horizon is relative to the newest stored row.
 	expect(result.rollups).toBe(1);
 	expect(result.maintained).not.toBeUndefined();
+});
+
+test("a missing or malformed clients file is an empty registry, not a defect", async () => {
+	const missing = await ClientRegistry.pipe(
+		Effect.provide(
+			ConfigProvider.layer(
+				ConfigProvider.fromUnknown({ GATEWAI_CLIENTS_FILE: "/nonexistent/clients.json" }),
+			),
+		),
+		Effect.runPromise,
+	);
+	expect(missing.size).toBe(0);
+});
+
+test("a pop error is kept per stage and cleared only by that stage", async () => {
+	const result = await Effect.gen(function* () {
+		const sql = yield* SqlClient.SqlClient;
+		yield* sql`INSERT INTO collector_state (key, value) VALUES ('error:snapshot', 'boom'), ('error_at:snapshot', '2026-09-16T00:00:00.000Z')`;
+		yield* popOnce;
+		return yield* readCollectorState;
+	}).pipe(Effect.provide(layer([records])), Effect.runPromise);
+	expect(result.lastError).toBe("snapshot: boom");
 });

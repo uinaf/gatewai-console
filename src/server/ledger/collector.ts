@@ -26,13 +26,17 @@ const BATCH = 500;
 
 const now = () => new Date().toISOString();
 
+// Errors are kept per stage so a healthy pop cannot hide a failing snapshot.
 const noteError = (stage: string, message: string) =>
 	Effect.logWarning(`collector: ${stage} failed`, message).pipe(
 		Effect.andThen(
-			writeCollectorState({ last_error: `${stage}: ${message}`, last_error_at: now() }),
+			writeCollectorState({ [`error:${stage}`]: message, [`error_at:${stage}`]: now() }),
 		),
 		Effect.catch(() => Effect.void),
 	);
+
+const clearError = (stage: string) =>
+	writeCollectorState({ [`error:${stage}`]: null, [`error_at:${stage}`]: null });
 
 /** One pop-and-store cycle. Exported so tests can drive it without the timers. */
 export const popOnce = Effect.gen(function* () {
@@ -46,12 +50,8 @@ export const popOnce = Effect.gen(function* () {
 	});
 	const written = yield* insertRequests(rows, registry);
 	yield* incrementRowsWritten(written);
-	yield* writeCollectorState({
-		last_pop_at: receivedAt,
-		last_pop_count: records.length,
-		last_error: null,
-		last_error_at: null,
-	});
+	yield* writeCollectorState({ last_pop_at: receivedAt, last_pop_count: records.length });
+	yield* clearError("pop");
 	return { popped: records.length, written };
 });
 
@@ -66,6 +66,7 @@ export const snapshotOnce = Effect.gen(function* () {
 		if (yield* recordQuotaSnapshot(credential, recordedAt)) recorded += 1;
 	}
 	yield* writeCollectorState({ last_snapshot_at: recordedAt });
+	yield* clearError("snapshot");
 	return recorded;
 });
 
@@ -81,6 +82,7 @@ export const maintainOnce = Effect.gen(function* () {
 	}
 	const pruned = yield* pruneRequests(at);
 	yield* writeCollectorState({ last_maintenance_at: at });
+	yield* clearError("maintain");
 	return pruned;
 });
 
@@ -90,9 +92,8 @@ const loop = <A, E>(
 	once: Effect.Effect<A, E, ManagementApi | SqlClient.SqlClient>,
 ) =>
 	once.pipe(
-		Effect.catch((error) =>
-			noteError(stage, error instanceof Error ? error.message : String(error)),
-		),
+		// Defects too: a loop that dies stops popping and the proxy drops the records.
+		Effect.catchCause((cause) => noteError(stage, String(cause).split("\n")[0] ?? "unknown")),
 		Effect.repeat(Schedule.spaced(every)),
 		Effect.onInterrupt(() => Effect.logInfo(`collector: ${stage} stopped`)),
 		Effect.forkScoped,

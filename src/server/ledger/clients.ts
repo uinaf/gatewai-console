@@ -11,7 +11,14 @@ export const hashKey = (key: string): string => createHash("sha256").update(key)
 const Registry = Schema.Record(Schema.String, Schema.String);
 
 export const ClientRegistry = Config.String("GATEWAI_CLIENTS_FILE").pipe(
-	Config.map((file) => JSON.parse(readFileSync(file, "utf8")) as unknown),
+	// A missing or malformed file is an error, never a defect: the pop loop must not die on it.
+	Effect.flatMap((file) =>
+		Effect.try({
+			try: () => JSON.parse(readFileSync(file, "utf8")) as unknown,
+			catch: (cause) =>
+				new Error(`cannot read ${file}: ${cause instanceof Error ? cause.message : cause}`),
+		}),
+	),
 	Effect.flatMap(Schema.decodeUnknownEffect(Registry)),
 	Effect.map((entries): ReadonlyMap<string, string> => new Map(Object.entries(entries))),
 	// No registry configured or an unreadable one: every key is a fingerprint.

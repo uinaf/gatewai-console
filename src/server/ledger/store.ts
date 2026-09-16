@@ -172,13 +172,23 @@ export const readCollectorState = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
 	const rows = yield* sql<{ key: string; value: string }>`SELECT key, value FROM collector_state`;
 	const map = new Map(rows.map((row) => [row.key, row.value]));
+	// The newest error across stages, prefixed with its stage.
+	const errors = [...map]
+		.filter(([key]) => key.startsWith("error:"))
+		.map(([key, value]) => ({
+			stage: key.slice(6),
+			value,
+			at: map.get(`error_at:${key.slice(6)}`) ?? "",
+		}))
+		.sort((a, b) => b.at.localeCompare(a.at));
+	const latest = errors[0];
 	return {
 		lastPopAt: map.get("last_pop_at") ?? null,
 		lastPopCount: Number(map.get("last_pop_count") ?? 0),
 		rowsWritten: Number(map.get("rows_written") ?? 0),
 		lastSnapshotAt: map.get("last_snapshot_at") ?? null,
-		lastError: map.get("last_error") ?? null,
-		lastErrorAt: map.get("last_error_at") ?? null,
+		lastError: latest ? `${latest.stage}: ${latest.value}` : null,
+		lastErrorAt: latest?.at || null,
 	};
 });
 
