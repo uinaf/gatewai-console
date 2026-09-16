@@ -1,4 +1,4 @@
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -135,4 +135,26 @@ test("a pop error is kept per stage and cleared only by that stage", async () =>
 		return yield* readCollectorState;
 	}).pipe(Effect.provide(layer([records])), Effect.runPromise);
 	expect(result.lastError).toBe("snapshot: boom");
+});
+
+test("the registry accepts the deployment's fingerprint inventory", async () => {
+	const dir = mkdtempSync(join(tmpdir(), "gatewai-clients-"));
+	const hash = "ab".repeat(32);
+	writeFileSync(
+		join(dir, "clients.json"),
+		JSON.stringify({
+			version: 1,
+			clients: [{ name: "devbox", fingerprint: hash.slice(0, 16), state: "active" }],
+		}),
+	);
+	const labels = await ClientRegistry.pipe(
+		Effect.provide(
+			ConfigProvider.layer(
+				ConfigProvider.fromUnknown({ GATEWAI_CLIENTS_FILE: join(dir, "clients.json") }),
+			),
+		),
+		Effect.runPromise,
+	);
+	expect(labels.get(hash)).toBe("devbox");
+	expect(labels.get("cd".repeat(32))).toBeUndefined();
 });

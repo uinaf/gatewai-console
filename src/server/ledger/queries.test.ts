@@ -7,6 +7,7 @@ import { SqlClient } from "effect/unstable/sql";
 import { expect, test } from "vitest";
 
 import { Database } from "#/server/database";
+import { ClientLabels } from "#/server/ledger/clients";
 import {
 	breakdown,
 	credentialLabels,
@@ -86,7 +87,7 @@ test("summary and breakdown aggregate the range and compare with the one before"
 	];
 	const result = await run(
 		Effect.gen(function* () {
-			yield* insertRequests(rows, new Map());
+			yield* insertRequests(rows, ClientLabels.empty());
 			const total = yield* summary(range);
 			const before = yield* summary(previousRange(range));
 			const byClient = yield* breakdown("client", range, new Map([["a".repeat(64), "macbook"]]));
@@ -194,7 +195,7 @@ test("breakdown stays under budget on 90 days of gateway-scale rows", async () =
 	}
 	const ms = await run(
 		Effect.gen(function* () {
-			yield* insertRequests(rows, new Map());
+			yield* insertRequests(rows, ClientLabels.empty());
 			const t0 = performance.now();
 			yield* breakdown(
 				"client",
@@ -235,7 +236,7 @@ test("the credential dimension labels rows by auth_index", async () => {
 			);
 			yield* insertRequests(
 				[row({ request_id: "1", timestamp: "2026-09-15T01:00:00.000Z" })],
-				new Map(),
+				ClientLabels.empty(),
 			);
 			return yield* breakdown("credential", range, yield* credentialLabels);
 		}),
@@ -253,7 +254,7 @@ test("ranges older than raw retention read the rollups, without percentiles", as
 					row({ request_id: "o1", timestamp: "2026-05-01T01:00:00.000Z" }),
 					row({ request_id: "o2", timestamp: "2026-05-01T01:30:00.000Z", failed: 1 }),
 				],
-				new Map(),
+				ClientLabels.empty(),
 			);
 			yield* rollupSince("2026-05-01T00:00:00.000Z");
 			yield* pruneRequests(new Date(now).toISOString());
