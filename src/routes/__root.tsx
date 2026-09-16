@@ -22,31 +22,9 @@ export const Route = createRootRoute({
 			},
 		],
 	}),
-	component: RootComponent,
+	component: Outlet,
 	shellComponent: RootDocument,
 });
-
-function RootComponent() {
-	return (
-		<div className="console-shell">
-			<header className="u-topbar">
-				<div className="u-shell-wide u-topbar-row">
-					<a className="u-topbar-mark" href="/" aria-label="home">
-						<img src="https://cdn.uinaf.dev/images/uinaf-computer.png" alt="" />
-					</a>
-					<nav className="u-topbar-nav">
-						<a href="/" aria-current="page">
-							gatewai-console
-						</a>
-					</nav>
-				</div>
-			</header>
-			<main className="u-shell-wide console-main">
-				<Outlet />
-			</main>
-		</div>
-	);
-}
 
 function RootDocument({ children }: { children: ReactNode }) {
 	return (

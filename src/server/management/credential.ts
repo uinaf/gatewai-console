@@ -71,3 +71,50 @@ export const poolsOf = (response: AuthFiles): Pools => ({
 	observedAt: response.observed_at ?? null,
 	credentials: response.files.map(credentialOf),
 });
+
+export interface ProviderSummary {
+	readonly provider: string;
+	readonly plan: string | null;
+	readonly accounts: number;
+	readonly cooling: number;
+	readonly requestsLastHour: number;
+	/** Mean of `100 - used` over the long window of each reporting account; null when none report. */
+	readonly remainingPercent: number | null;
+	readonly unreported: number;
+}
+
+const LONG_WINDOWS = ["weekly", "5-hour"];
+
+/** The window the pools screen sorts and summarises by: weekly first, then the 5-hour one. */
+export const primaryWindow = (credential: Credential) =>
+	LONG_WINDOWS.map((label) =>
+		credential.quota.windows.find((window) => window.label === label),
+	).find((window) => window !== undefined) ?? null;
+
+export const requestsLastHour = (credential: Credential) =>
+	credential.recentRequests
+		.slice(-6)
+		.reduce((total, bucket) => total + bucket.success + bucket.failed, 0);
+
+export const summarize = (
+	credentials: ReadonlyArray<Credential>,
+): ReadonlyArray<ProviderSummary> => {
+	const providers = [...new Set(credentials.map((credential) => credential.provider))];
+	return providers.map((provider) => {
+		const own = credentials.filter((credential) => credential.provider === provider);
+		const reporting = own.map(primaryWindow).filter((window) => window !== null);
+		const remaining = reporting.map((window) => 100 - window.usedPercent);
+		return {
+			provider,
+			plan: own.map((credential) => credential.plan).find((plan) => plan !== null) ?? null,
+			accounts: own.length,
+			cooling: own.filter((credential) => credential.status === "cooling").length,
+			requestsLastHour: own.reduce((total, credential) => total + requestsLastHour(credential), 0),
+			remainingPercent:
+				remaining.length > 0
+					? Math.round(remaining.reduce((a, b) => a + b, 0) / remaining.length)
+					: null,
+			unreported: own.length - reporting.length,
+		};
+	});
+};
