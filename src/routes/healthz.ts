@@ -15,6 +15,7 @@ export const Route = createFileRoute("/healthz")({
 						version: __APP_VERSION__,
 						uptimeSeconds: Math.round(process.uptime()),
 						db: "unreachable",
+						collector: null,
 					};
 				});
 				return Response.json(result, {
