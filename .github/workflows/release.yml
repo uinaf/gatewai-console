@@ -23,7 +23,7 @@ jobs:
     needs: verify
     # A manual dispatch from another branch must not overwrite the version and latest tags.
     if: github.ref == 'refs/heads/main'
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
       contents: read

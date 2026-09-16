@@ -1,76 +1,85 @@
 # uinaf/gatewai-console
 
 Operator console for a self-hosted [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI)
-gateway. One console runs next to each proxy and reads its management API over
-loopback.
+gateway. It runs next to the proxy, reads the management API over loopback, and
+replaces the stock Management Center with three screens:
 
-It replaces the stock Management Center with three screens: **pools** (every
-credential with its quota windows, cooldowns, request history, and the runbook
-actions), **ledger** (per-key and per-model usage over time, kept past the
-proxy's 60-second retention), and **alerts** (rules on remaining quota,
-cooldowns, failed refreshes, and a stalled collector, delivered by email or a
-Better Stack heartbeat). Dark only; read-only apart from reset cooldown,
-refresh credential, and the websockets toggle.
+- **Pools.** Every credential with its quota windows, cooldowns, twenty-bucket
+  request history, and the runbook actions: reset cooldown, refresh, toggle
+  websockets. Provider quota headers are folded into plain windows, so Claude's
+  unified limits and Codex's primary, secondary, and per-model families read
+  the same way.
+- **Ledger.** Per client key, model, provider, and credential: requests, error
+  rate, tokens with cache reads and writes, p50/p95 latency and time to first
+  token, model share, and deltas against the previous range. The proxy keeps
+  usage records for sixty seconds; the console persists them and keeps hourly
+  rollups indefinitely. Quota history per credential shows drains and resets.
+- **Alerts.** Rules on remaining quota, cooldowns, failed refreshes, and a
+  stalled collector, evaluated with hysteresis so jitter never refires. Each
+  crossing opens an incident, sends an email through Cloudflare Email Sending
+  if configured, and feeds an optional Better Stack heartbeat per rule.
 
-## Run it
+Dark only, on the uinaf design system. Read-only apart from the three runbook
+actions. Client keys are stored as SHA-256 only; the management key never
+reaches the browser, the logs, or the database.
+
+## Run
 
 The image is `ghcr.io/uinaf/gatewai-console`, tagged with the package version
-and the commit. It runs as UID 1000 on a read-only root with `/data` as the only
-writable path.
+and `sha-<commit>`. It runs as UID 1000 on a read-only root; `/data` is the only
+writable path and holds the SQLite file, which a fresh volume migrates on first
+boot.
 
 ```bash
-docker run --rm --read-only --tmpfs /tmp \
+docker run --rm --network host --read-only --tmpfs /tmp \
   -v gatewai-console-data:/data \
   -v /etc/gatewai/management-key:/run/secrets/management-key:ro \
-  -e GATEWAI_MANAGEMENT_URL=http://127.0.0.1:8317/v0/management \
   -e GATEWAI_MANAGEMENT_KEY_FILE=/run/secrets/management-key \
-  -e GATEWAI_HOST_LABEL=t102 \
-  --network host \
+  -e GATEWAI_HOST_LABEL=gateway-a \
   ghcr.io/uinaf/gatewai-console:latest
 ```
 
-`GET /healthz` answers with the version, database reachability, and the
-collector's last pop; anything else in the environment is listed with its owner
-in [AGENTS.md](AGENTS.md#commands). Mount [alerts.json](alerts.example.json) and
-set `GATEWAI_ALERTS_FILE` to enable rules; mount a `clients.json` map of
-`sha256(client key)` to label and set `GATEWAI_CLIENTS_FILE` to name keys in the
-ledger.
+The console listens on 8080 and expects the proxy's management API at
+`http://127.0.0.1:8317/v0/management`; set `GATEWAI_MANAGEMENT_URL` to point
+elsewhere. Every other setting, with its default and the file that reads it, is
+in [.env.example](.env.example). Two optional read-only mounts:
 
-The management key is the only secret the console holds. It never reaches the
-browser, the logs, or the database.
+- `GATEWAI_ALERTS_FILE`: alert rules, see [alerts.example.json](alerts.example.json).
+- `GATEWAI_CLIENTS_FILE`: a JSON map of `sha256(client key)` to a label, so the
+  ledger names keys instead of showing fingerprints.
+
+`GET /healthz` reports the version, database reachability, and the collector's
+last pop, lag, rows written, and last error. Run exactly one console per proxy:
+reading the usage queue consumes it.
+
+Put the console behind whatever already authenticates your operators; it has
+no login. When served through `tailscale serve`, it shows the
+`tailscale-user-login` header in the topbar.
 
 ## Develop
 
+Node and pnpm versions are pinned in [.node-version](.node-version) and
+[package.json](package.json). Development talks to a real gateway; there is
+no mock proxy.
+
 ```bash
 pnpm install --frozen-lockfile
-<<<<<<< HEAD
-OP_ITEM='op://VAULT/ITEM' GATEWAI_MANAGEMENT_URL='https://gateway.example/v0/management' pnpm run env
-pnpm run doctor                 # toolchain, env, gateway reachability
-pnpm run dev                    # http://localhost:3000 (PORT=… to move it)
-pnpm run verify                 # the CI gate
-=======
-OP_ITEM='op://VAULT/ITEM' GATEWAI_MANAGEMENT_URL='https://gateway.example/v0/management' pnpm run env
-pnpm run doctor   # pins, .env.local, gateway reachable
-pnpm run dev      # http://localhost:3000, PORT= to move it
-pnpm run verify   # the CI gate
->>>>>>> 7cf3cdb (feat: email on alert crossings through Cloudflare Email Sending; readme for operators)
+cp .env.example .env.local        # or: OP_ITEM='op://VAULT/ITEM' GATEWAI_MANAGEMENT_URL='https://gateway.example/v0/management' pnpm run env
+pnpm run doctor                   # pins, .env.local, gateway reachable
+pnpm run dev                      # http://localhost:3000; PORT= to move it
+pnpm run verify                   # the CI gate
 ```
 
-`pnpm run env` writes `.env.local` from a 1Password item holding `management`
-(and optionally `client-bearer`); write the file by hand if you keep the key
-elsewhere. Against a live gateway the collector starts popping the usage queue
-immediately, and popping consumes, so point exactly one console at a proxy.
-
-To try the image the way production runs it:
+`pnpm run env` writes `.env.local` from a 1Password item holding a
+`management` field. To run the image the way production does:
 
 ```bash
-docker build -t gatewai-console:local .
-pnpm run smoke gatewai-console:local
+docker build -t gatewai-console:local . && pnpm run smoke gatewai-console:local
 ```
 
-## Design and delivery
+Stack, boundaries, and delivery rules are in [AGENTS.md](AGENTS.md). The visual
+brief the screens were designed from is [docs/design-brief.md](docs/design-brief.md).
 
-The screens follow a shared design canvas on the uinaf design system; the brief
-is in [docs/design-brief.md](docs/design-brief.md). Stack, invariants, and
-layout are in [AGENTS.md](AGENTS.md). Pushes to `main` publish the image with
-the digest in the run summary.
+## License
+
+[MIT](LICENSE).
