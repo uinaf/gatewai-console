@@ -10,7 +10,13 @@ export const hashKey = (key: string): string => createHash("sha256").update(key)
 
 const Registry = Schema.Record(Schema.String, Schema.String);
 
+// Unset means "no registry" and is silent; only an unreadable or invalid file warns.
 export const ClientRegistry = Config.String("GATEWAI_CLIENTS_FILE").pipe(
+	Config.withDefault(""),
+	Effect.filterOrFail(
+		(file) => file !== "",
+		() => new Error("unset"),
+	),
 	// A missing or malformed file is an error, never a defect: the pop loop must not die on it.
 	Effect.flatMap((file) =>
 		Effect.try({
@@ -23,8 +29,9 @@ export const ClientRegistry = Config.String("GATEWAI_CLIENTS_FILE").pipe(
 	Effect.map((entries): ReadonlyMap<string, string> => new Map(Object.entries(entries))),
 	// No registry configured or an unreadable one: every key is a fingerprint.
 	Effect.catch((error) =>
-		Effect.logWarning("clients: registry unavailable", String(error)).pipe(
-			Effect.as<ReadonlyMap<string, string>>(new Map()),
-		),
+		(error instanceof Error && error.message === "unset"
+			? Effect.void
+			: Effect.logWarning("clients: registry unavailable", String(error))
+		).pipe(Effect.as<ReadonlyMap<string, string>>(new Map())),
 	),
 );

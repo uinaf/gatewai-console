@@ -54,6 +54,11 @@ export const scopeLabel = (rule: Rule): string =>
 
 /** Rules from `GATEWAI_ALERTS_FILE`; an absent or broken file means no rules and a warning. */
 export const AlertRules = Config.String("GATEWAI_ALERTS_FILE").pipe(
+	Config.withDefault(""),
+	Effect.filterOrFail(
+		(file) => file !== "",
+		() => new Error("unset"),
+	),
 	Effect.flatMap((file) =>
 		Effect.try({
 			try: () => JSON.parse(readFileSync(file, "utf8")) as unknown,
@@ -64,8 +69,9 @@ export const AlertRules = Config.String("GATEWAI_ALERTS_FILE").pipe(
 	Effect.flatMap(Schema.decodeUnknownEffect(RulesFile)),
 	Effect.map((parsed): ReadonlyArray<Rule> => parsed.rules),
 	Effect.catch((error) =>
-		Effect.logWarning("alerts: rules unavailable", String(error)).pipe(
-			Effect.as<ReadonlyArray<Rule>>([]),
-		),
+		(error instanceof Error && error.message === "unset"
+			? Effect.void
+			: Effect.logWarning("alerts: rules unavailable", String(error))
+		).pipe(Effect.as<ReadonlyArray<Rule>>([])),
 	),
 );
