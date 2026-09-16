@@ -39,10 +39,7 @@ const records = usageQueue.map((record) => Schema.decodeUnknownSync(UsageRecord)
 const at = "2026-09-16T15:10:00.000Z";
 
 test("a popped batch stores once, hashes the key, and re-pops are no-ops", async () => {
-	const rows = records.flatMap((record) => {
-		const row = toRow(record, at);
-		return row ? [row] : [];
-	});
+	const rows = records.map((record) => toRow(record, at));
 	const registry = new Map([[hashKey(records[0]?.api_key ?? ""), "macbook"]]);
 	const result = await run(
 		Effect.gen(function* () {
@@ -72,6 +69,33 @@ test("a popped batch stores once, hashes the key, and re-pops are no-ops", async
 		expect(row.timestamp.endsWith("Z")).toBe(true);
 	}
 	expect(result.keys.map((key) => key.label)).toContain("macbook");
+});
+
+test("a record without request_id gets a stable content hash id and cache writes are kept", async () => {
+	const base = records[0];
+	if (!base) throw new Error("fixture missing record");
+	const { request_id: _id, ...anonymous } = base;
+	const first = toRow(anonymous, at);
+	const again = toRow(anonymous, "2026-09-16T15:11:00.000Z");
+	expect(first.request_id).toMatch(/^hash:[a-f0-9]{32}$/);
+	expect(again.request_id).toBe(first.request_id);
+	expect(first.tokens_cache_write).toBe(base.token_breakdown?.input?.cache_write_tokens ?? -1);
+});
+
+test("a label removed from the registry reverts to a fingerprint", async () => {
+	const rows = records.map((record) => toRow(record, at));
+	const hash = rows[0]?.client_hash ?? "";
+	const labels = await run(
+		Effect.gen(function* () {
+			const sql = yield* SqlClient.SqlClient;
+			yield* insertRequests(rows, new Map([[hash, "macbook"]]));
+			yield* insertRequests(rows, new Map());
+			return yield* sql<{
+				label: string | null;
+			}>`SELECT label FROM client_keys WHERE hash = ${hash}`;
+		}),
+	);
+	expect(labels[0]?.label).toBeNull();
 });
 
 test("quota snapshots record only changes; credentials upsert", async () => {
@@ -119,7 +143,7 @@ test("rollups aggregate per hour and pruning keeps the window", async () => {
 		make("b", "2026-09-16T14:50:00Z", true),
 		make("c", "2026-09-16T15:01:00Z", false),
 		make("old", "2026-06-01T00:00:00Z", false),
-	].flatMap((row) => (row ? [row] : []));
+	];
 	const result = await run(
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;

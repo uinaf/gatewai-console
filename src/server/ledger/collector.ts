@@ -44,10 +44,7 @@ export const popOnce = Effect.gen(function* () {
 	const registry = yield* ClientRegistry;
 	const records = yield* api.popUsage(BATCH);
 	const receivedAt = now();
-	const rows = records.flatMap((record) => {
-		const row = toRow(record, receivedAt);
-		return row ? [row] : [];
-	});
+	const rows = records.map((record) => toRow(record, receivedAt));
 	const written = yield* insertRequests(rows, registry);
 	yield* incrementRowsWritten(written);
 	yield* writeCollectorState({ last_pop_at: receivedAt, last_pop_count: records.length });

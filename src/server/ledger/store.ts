@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { Effect } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 
@@ -30,6 +32,7 @@ export type RequestRow = {
 	readonly ttft_ms: number | null;
 	readonly tokens_input: number;
 	readonly tokens_cached: number;
+	readonly tokens_cache_write: number;
 	readonly tokens_output: number;
 	readonly tokens_reasoning: number;
 	readonly reasoning_effort: string | null;
@@ -40,12 +43,16 @@ export type RequestRow = {
 };
 
 /** Shapes a popped record for storage. The raw key is hashed and never kept. */
-export const toRow = (record: UsageRecord, receivedAt: string): RequestRow | null => {
-	if (!record.request_id) return null;
+export const toRow = (record: UsageRecord, receivedAt: string): RequestRow => {
 	const { api_key: _key, ...rest } = record;
 	const breakdown = record.token_breakdown;
+	// The pop already consumed the record, so one without an id still has to land;
+	// a content hash keeps the same record idempotent across a re-pop.
+	const requestId =
+		record.request_id ??
+		`hash:${createHash("sha256").update(JSON.stringify(rest)).digest("hex").slice(0, 32)}`;
 	return {
-		request_id: record.request_id,
+		request_id: requestId,
 		timestamp: iso(record.timestamp),
 		client_hash: hashKey(record.api_key ?? ""),
 		provider: record.provider,
@@ -58,6 +65,7 @@ export const toRow = (record: UsageRecord, receivedAt: string): RequestRow | nul
 		ttft_ms: record.ttft_ms ?? null,
 		tokens_input: breakdown?.input?.uncached_tokens ?? 0,
 		tokens_cached: breakdown?.input?.cache_read_tokens ?? 0,
+		tokens_cache_write: breakdown?.input?.cache_write_tokens ?? 0,
 		tokens_output: breakdown?.output?.total_tokens ?? 0,
 		tokens_reasoning: breakdown?.output?.reasoning_tokens ?? 0,
 		reasoning_effort: record.reasoning_effort ?? null,
@@ -92,10 +100,11 @@ export const insertRequests = (
 				}
 				for (const [hash, lastSeen] of seen) {
 					const label = registry.get(hash) ?? null;
+					// The registry is authoritative: a label removed from it reverts to a fingerprint.
 					yield* sql`INSERT INTO client_keys ${sql.insert({ hash, label, first_seen: lastSeen, last_seen: lastSeen })}
 						ON CONFLICT (hash) DO UPDATE SET
 							last_seen = max(last_seen, excluded.last_seen),
-							label = coalesce(excluded.label, client_keys.label)`;
+							label = excluded.label`;
 				}
 			}),
 		);
@@ -150,8 +159,9 @@ export const rollupSince = (since: string) =>
 				yield* sql`INSERT INTO request_rollups
 					SELECT substr(timestamp, 1, 13) || ':00:00.000Z' AS hour, client_hash, provider, model,
 						coalesce(auth_index, '') AS auth_index,
-						count(*), sum(failed), sum(tokens_input), sum(tokens_cached), sum(tokens_output),
-						sum(tokens_reasoning), sum(coalesce(latency_ms, 0)), sum(coalesce(ttft_ms, 0))
+						count(*), sum(failed), sum(tokens_input), sum(tokens_cached), sum(tokens_cache_write),
+						sum(tokens_output), sum(tokens_reasoning), sum(coalesce(latency_ms, 0)),
+						sum(coalesce(ttft_ms, 0))
 					FROM requests WHERE timestamp >= ${floor}
 					GROUP BY hour, client_hash, provider, model, coalesce(auth_index, '')`;
 			}),
