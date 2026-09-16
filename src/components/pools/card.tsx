@@ -1,12 +1,17 @@
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 
 import { Buckets } from "#/components/pools/buckets";
 import { calendar, credits } from "#/components/pools/format";
 import { ProviderMark } from "#/components/pools/marks";
 import { QuotaMeter } from "#/components/pools/quota-meter";
-import { refreshCredential, resetCooldown, setWebsockets } from "#/functions/pools";
+import {
+	type ActionResult,
+	refreshCredential,
+	resetCooldown,
+	setWebsockets,
+} from "#/functions/pools";
 import type { Credential } from "#/server/management/credential";
 
 const STATUS_DOT: Record<Credential["status"], string> = {
@@ -21,6 +26,7 @@ function footnote(credential: Credential): string | null {
 	if (credential.status === "cooling" && cooldown) {
 		const scope = cooldown.model ? ` for ${cooldown.model}` : "";
 		const until = cooldown.until ? ` until ${calendar(cooldown.until)}` : "";
+		// Rendered in the viewer's zone; see card-note's suppressHydrationWarning.
 		return `cooldown${scope}${until}.`;
 	}
 	if (credential.status === "disabled") return "disabled. requests route to the other accounts.";
@@ -34,10 +40,13 @@ export function CredentialCard({ credential, now }: { credential: Credential; no
 	const refresh = useServerFn(refreshCredential);
 	const websockets = useServerFn(setWebsockets);
 	const [pending, startTransition] = useTransition();
+	const [failure, setFailure] = useState<string | null>(null);
 
-	const act = (action: () => Promise<unknown>) =>
+	// A rejected runbook action stays on the card until the next action succeeds.
+	const act = (label: string, action: () => Promise<ActionResult>) =>
 		startTransition(async () => {
-			await action();
+			const result = await action();
+			setFailure(result.ok ? null : `${label} failed: ${result.message}`);
 			await router.invalidate();
 		});
 
@@ -94,14 +103,24 @@ export function CredentialCard({ credential, now }: { credential: Credential; no
 			<Buckets buckets={credential.recentRequests} />
 
 			<footer className="card-foot">
-				<p className="u-meta card-note">{note}</p>
+				<p
+					className="u-meta card-note"
+					role={failure ? "alert" : undefined}
+					data-failure={failure ? "" : undefined}
+					// The cooldown date is formatted in the viewer's zone, which the server cannot know.
+					suppressHydrationWarning
+				>
+					{failure ?? note}
+				</p>
 				<div className="card-actions">
 					{credential.status === "cooling" ? (
 						<button
 							type="button"
 							className="u-btn u-btn--sm"
 							disabled={pending}
-							onClick={() => act(() => reset({ data: { authIndex: credential.authIndex } }))}
+							onClick={() =>
+								act("reset cooldown", () => reset({ data: { authIndex: credential.authIndex } }))
+							}
 						>
 							reset cooldown
 						</button>
@@ -110,7 +129,7 @@ export function CredentialCard({ credential, now }: { credential: Credential; no
 						type="button"
 						className="u-btn u-btn--sm u-btn--ghost"
 						disabled={pending}
-						onClick={() => act(() => refresh({ data: { name: credential.name } }))}
+						onClick={() => act("refresh", () => refresh({ data: { name: credential.name } }))}
 					>
 						refresh
 					</button>
@@ -121,7 +140,7 @@ export function CredentialCard({ credential, now }: { credential: Credential; no
 							disabled={pending}
 							aria-pressed={credential.websockets}
 							onClick={() =>
-								act(() =>
+								act("websockets", () =>
 									websockets({ data: { name: credential.name, enabled: !credential.websockets } }),
 								)
 							}

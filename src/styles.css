@@ -111,7 +111,7 @@ body {
 .u-segmented a:hover {
 	color: var(--fg);
 }
-.u-segmented a[aria-pressed="true"] {
+.u-segmented a[aria-current="true"] {
 	background: var(--bg-raised);
 	color: var(--fg);
 }
@@ -292,6 +292,9 @@ body {
 	max-width: 42ch;
 	margin: 0;
 }
+.card-note[data-failure] {
+	color: var(--error);
+}
 .card-actions {
 	display: flex;
 	gap: var(--sp-2);
@@ -319,7 +322,15 @@ body {
 }
 
 @media (max-width: 720px) {
+	.u-topbar-row {
+		flex-wrap: wrap;
+		row-gap: var(--sp-2);
+	}
 	.u-topbar-actions {
+		flex-basis: 100%;
+		justify-content: flex-end;
+	}
+	.operator {
 		display: none;
 	}
 	.stats {

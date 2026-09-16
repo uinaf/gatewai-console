@@ -25,36 +25,62 @@ const context = () => ({
 	fetchedAt: new Date().toISOString(),
 });
 
-const runAction = <A>(effect: Effect.Effect<A, ManagementError, ManagementApi>) =>
-	runtime.runPromise(
-		effect.pipe(
-			Effect.map(() => ({ ok: true as const })),
-			Effect.catchTag("ManagementError", (error) =>
-				Effect.succeed({ ok: false as const, reason: error.reason, message: error.message }),
-			),
-		),
-	);
+export type ActionResult =
+	| { readonly ok: true }
+	| { readonly ok: false; readonly reason: FaultReason; readonly message: string };
 
-export const loadPools = createServerFn({ method: "GET" }).handler(async (): Promise<PoolsView> => {
-	const host = await runtime.runPromise(HostLabel);
-	const result = await runtime
+const runAction = <A>(
+	effect: Effect.Effect<A, ManagementError, ManagementApi>,
+): Promise<ActionResult> =>
+	runtime
 		.runPromise(
-			Effect.flatMap(ManagementApi, (api) => api.pools).pipe(
-				Effect.map((pools) => ({ ok: true as const, pools })),
+			effect.pipe(
+				Effect.map((): ActionResult => ({ ok: true })),
 				Effect.catchTag("ManagementError", (error) =>
-					Effect.logWarning("pools: management api failed", error.message).pipe(
-						Effect.as({ ok: false as const, reason: error.reason, message: error.message }),
-					),
+					Effect.succeed<ActionResult>({
+						ok: false,
+						reason: error.reason,
+						message: error.message,
+					}),
 				),
 			),
 		)
-		.catch((cause: unknown) => ({
-			ok: false as const,
-			reason: "internal" as const,
-			message: cause instanceof Error ? cause.message : String(cause),
-		}));
-	return { host, ...context(), result };
-});
+		.catch((cause: unknown): ActionResult => {
+			console.error("pools: action failed", cause);
+			return { ok: false, reason: "internal", message: "console failed before asking the gateway" };
+		});
+
+export const loadPools = createServerFn({ method: "GET" }).handler((): Promise<PoolsView> =>
+	runtime
+		.runPromise(
+			Effect.gen(function* () {
+				const host = yield* HostLabel;
+				const result = yield* Effect.flatMap(ManagementApi, (api) => api.pools).pipe(
+					Effect.map((pools) => ({ ok: true as const, pools })),
+					Effect.catchTag("ManagementError", (error) =>
+						Effect.logWarning("pools: management api failed", error.message).pipe(
+							Effect.as({ ok: false as const, reason: error.reason, message: error.message }),
+						),
+					),
+				);
+				return { host, ...context(), result };
+			}),
+		)
+		// Runtime construction (config, database) failing is a console fault, not a
+		// gateway one. The cause goes to the server log, never to the browser.
+		.catch((cause: unknown): PoolsView => {
+			console.error("pools: runtime failed", cause);
+			return {
+				host: "unknown",
+				...context(),
+				result: {
+					ok: false,
+					reason: "internal",
+					message: "console failed before asking the gateway",
+				},
+			};
+		}),
+);
 
 const authIndexInput = (input: unknown) => {
 	if (typeof input !== "object" || input === null) throw new Error("input required");

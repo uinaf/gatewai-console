@@ -85,19 +85,18 @@ function PoolsPage() {
 			<Stats summaries={summarize(credentials)} />
 
 			<div className="u-toolbar pools-toolbar">
-				<div className="u-segmented" role="group" aria-label="provider">
+				<nav className="u-segmented" aria-label="provider">
 					{providers.map((provider) => (
 						<Link
 							key={provider}
 							to="/"
 							search={(prev) => ({ ...prev, provider: provider === "all" ? undefined : provider })}
-							aria-pressed={active === provider}
-							role="button"
+							aria-current={active === provider ? "true" : undefined}
 						>
 							{provider}
 						</Link>
 					))}
-				</div>
+				</nav>
 				<label className="pools-sort">
 					<span className="u-label">sort</span>
 					<select

@@ -13,7 +13,8 @@ interface StampProps {
 
 function Stamp({ observedAt, serverNow }: StampProps) {
 	const now = useNow(serverNow);
-	const stale = observedAt === null || now - Date.parse(observedAt) > STALE_AFTER_MS;
+	const observed = observedAt === null ? Number.NaN : Date.parse(observedAt);
+	const stale = !Number.isFinite(observed) || now - observed > STALE_AFTER_MS;
 	return (
 		<span className="stamp" data-stale={stale || undefined}>
 			<span className={stale ? "u-dot u-dot--warn" : "u-dot u-dot--ok"} />
@@ -60,7 +61,7 @@ export function Shell({ host, operator, stamp, children }: ShellProps) {
 					<div className="u-topbar-actions">
 						<span className="u-meta">
 							{host}
-							{operator ? ` · ${operator}` : ""}
+							{operator ? <span className="operator"> · {operator}</span> : null}
 						</span>
 						{stamp ? (
 							<>
