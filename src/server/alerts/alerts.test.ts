@@ -17,7 +17,7 @@ import authFiles from "#/server/management/fixtures/auth-files.json";
 import { AuthFiles } from "#/server/management/schema";
 
 const pools = poolsOf(Schema.decodeUnknownSync(AuthFiles)(authFiles));
-const codex = pools.credentials.find((c) => c.name === "codex-altay@uinaf.dev.json");
+const codex = pools.credentials.find((c) => c.name === "codex-two@example.com.json");
 if (!codex) throw new Error("fixture missing codex");
 
 const withWeekly = (credential: Credential, usedPercent: number): Credential => ({
@@ -85,7 +85,7 @@ test("cooldown, unhealthy, and stalled rules read status and collector age", () 
 	const firing = results
 		.filter((r) => r.firing)
 		.map((r) => `${r.condition.ruleId}:${r.condition.subject}`);
-	expect(firing).toEqual(["cooldown:claude-altay@uinaf.dev.json", "stalled:collector"]);
+	expect(firing).toEqual(["cooldown:claude-two@example.com.json", "stalled:collector"]);
 	expect(results.filter((r) => r.condition.ruleId === "unhealthy")).toHaveLength(3);
 });
 

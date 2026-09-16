@@ -21,7 +21,7 @@ test("the stat strip summarises per provider without faking xai", () => {
 });
 
 test("the primary window is weekly, and last-hour requests sum six buckets", () => {
-	const codex = credentials.find((c) => c.name === "codex-altay@uinaf.dev.json");
+	const codex = credentials.find((c) => c.name === "codex-two@example.com.json");
 	if (!codex) throw new Error("fixture missing codex");
 	expect(primaryWindow(codex)?.label).toBe("weekly");
 	expect(requestsLastHour(codex)).toBe(

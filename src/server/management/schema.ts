@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 
-// Wire shapes of the CLIProxyAPI management API, verified against v7.3.4 on t102.
+// Wire shapes of the CLIProxyAPI management API, verified against v7.3.4.
 // Structs drop unknown keys on decode, so token material in `auth-files` never
 // leaves this boundary.
 

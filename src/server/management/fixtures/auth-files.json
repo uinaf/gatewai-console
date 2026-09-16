@@ -6,10 +6,10 @@
 			"auth_index": "92585e3a5c7453d2",
 			"cooldowns": [],
 			"disabled": false,
-			"email": "altay@hey.com",
+			"email": "one@example.com",
 			"failed": 1,
-			"id": "claude-altay@hey.com.json",
-			"label": "altay@hey.com",
+			"id": "claude-one@example.com.json",
+			"label": "one@example.com",
 			"last_refresh": "2026-09-16T20:03:30.893872518+08:00",
 			"model_quotas": {
 				"claude-fable-5-1": {
@@ -50,7 +50,7 @@
 					}
 				}
 			},
-			"name": "claude-altay@hey.com.json",
+			"name": "claude-one@example.com.json",
 			"provider": "claude",
 			"quota": {
 				"observed_at": "2026-09-16T21:27:43.757051685+08:00",
@@ -195,10 +195,10 @@
 				}
 			],
 			"disabled": false,
-			"email": "altay@uinaf.dev",
+			"email": "two@example.com",
 			"failed": 4,
-			"id": "claude-altay@uinaf.dev.json",
-			"label": "altay@uinaf.dev",
+			"id": "claude-two@example.com.json",
+			"label": "two@example.com",
 			"last_refresh": "2026-09-16T22:19:24.978888076+08:00",
 			"model_quotas": {
 				"claude-fable-5-1": {
@@ -258,7 +258,7 @@
 					}
 				}
 			},
-			"name": "claude-altay@uinaf.dev.json",
+			"name": "claude-two@example.com.json",
 			"provider": "claude",
 			"quota": {
 				"signals": {}
@@ -376,10 +376,10 @@
 			"auth_index": "8bfdcfdeba56f609",
 			"cooldowns": [],
 			"disabled": false,
-			"email": "dev@uinaf.dev",
+			"email": "dev@example.com",
 			"failed": 2,
-			"id": "claude-dev@uinaf.dev.json",
-			"label": "dev@uinaf.dev",
+			"id": "claude-dev@example.com.json",
+			"label": "dev@example.com",
 			"last_refresh": "2026-09-16T22:43:51.301138829+08:00",
 			"model_quotas": {
 				"claude-fable-5-1": {
@@ -420,7 +420,7 @@
 					}
 				}
 			},
-			"name": "claude-dev@uinaf.dev.json",
+			"name": "claude-dev@example.com.json",
 			"provider": "claude",
 			"quota": {
 				"observed_at": "2026-09-16T23:01:56.968651035+08:00",
@@ -555,10 +555,10 @@
 			"auth_index": "66910f7ae8eac3fe",
 			"cooldowns": [],
 			"disabled": false,
-			"email": "altay@hey.com",
+			"email": "one@example.com",
 			"failed": 0,
-			"id": "codex-altay@hey.com.json",
-			"label": "altay@hey.com",
+			"id": "codex-one@example.com.json",
+			"label": "one@example.com",
 			"model_quotas": {
 				"gpt-5.6-luna": {
 					"observed_at": "2026-09-16T20:03:34.378591157+08:00",
@@ -641,7 +641,7 @@
 					}
 				}
 			},
-			"name": "codex-altay@hey.com.json",
+			"name": "codex-one@example.com.json",
 			"provider": "codex",
 			"quota": {
 				"observed_at": "2026-09-16T21:04:14.896420239+08:00",
@@ -785,10 +785,10 @@
 			"auth_index": "096d1e8172a75e82",
 			"cooldowns": [],
 			"disabled": false,
-			"email": "altay@uinaf.dev",
+			"email": "two@example.com",
 			"failed": 1,
-			"id": "codex-altay@uinaf.dev.json",
-			"label": "altay@uinaf.dev",
+			"id": "codex-two@example.com.json",
+			"label": "two@example.com",
 			"model_quotas": {
 				"gpt-5.6-luna": {
 					"observed_at": "2026-09-16T20:55:00.116374519+08:00",
@@ -871,7 +871,7 @@
 					}
 				}
 			},
-			"name": "codex-altay@uinaf.dev.json",
+			"name": "codex-two@example.com.json",
 			"provider": "codex",
 			"quota": {
 				"observed_at": "2026-09-16T20:55:00.116374519+08:00",
@@ -1013,12 +1013,12 @@
 			"auth_index": "8542ff1f7eba7f36",
 			"cooldowns": [],
 			"disabled": false,
-			"email": "altay@hey.com",
+			"email": "one@example.com",
 			"failed": 0,
-			"id": "xai-altay@hey.com.json",
-			"label": "altay@hey.com",
+			"id": "xai-one@example.com.json",
+			"label": "one@example.com",
 			"last_refresh": "2026-09-16T22:02:49.381871734+08:00",
-			"name": "xai-altay@hey.com.json",
+			"name": "xai-one@example.com.json",
 			"provider": "xai",
 			"quota": {
 				"signals": {}
@@ -1136,12 +1136,12 @@
 			"auth_index": "cf6aebdc3561afb4",
 			"cooldowns": [],
 			"disabled": false,
-			"email": "altay@uinaf.dev",
+			"email": "two@example.com",
 			"failed": 0,
-			"id": "xai-altay@uinaf.dev.json",
-			"label": "altay@uinaf.dev",
+			"id": "xai-two@example.com.json",
+			"label": "two@example.com",
 			"last_refresh": "2026-09-16T22:10:28.670098895+08:00",
-			"name": "xai-altay@uinaf.dev.json",
+			"name": "xai-two@example.com.json",
 			"provider": "xai",
 			"quota": {
 				"signals": {}
