@@ -55,6 +55,31 @@ test("xai reports counts without windows", () => {
 	expect(credential.recentRequests).toHaveLength(20);
 });
 
+test("non-numeric signals are skipped and offsets order by instant", () => {
+	const base = files.files.find((file) => file.provider === "claude");
+	if (!base) throw new Error("fixture missing claude");
+	const credential = credentialOf({
+		...base,
+		quota: {
+			observed_at: "2026-09-16T10:00:00Z",
+			signals: { "Anthropic-Ratelimit-Unified-5h-Utilization": "0.9" },
+		},
+		model_quotas: {
+			stale: {
+				observed_at: "2026-09-16T11:00:00+08:00",
+				signals: { "Anthropic-Ratelimit-Unified-5h-Utilization": "0.1" },
+			},
+			broken: {
+				observed_at: "2026-09-16T12:00:00Z",
+				signals: { "Anthropic-Ratelimit-Unified-7d-Utilization": "N/A" },
+			},
+		},
+	});
+	expect(credential.quota.windows).toEqual([
+		{ label: "5-hour", usedPercent: 90, resetsAt: null, status: "unknown" },
+	]);
+});
+
 test("pools carry the gateway observation time", () => {
 	expect(poolsOf(files).observedAt).toBe("2026-09-16T15:01:57.038963298Z");
 });

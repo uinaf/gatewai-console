@@ -14,13 +14,13 @@ interface Seen {
 	readonly body: string;
 }
 
-type Reply = { status: number; body?: unknown } | "unreachable";
+type Reply = { status: number; body?: unknown } | "unreachable" | "hang";
 
 const bodyText = (request: HttpClientRequest.HttpClientRequest) =>
 	request.body._tag === "Uint8Array" ? new TextDecoder().decode(request.body.body) : "";
 
 // A scripted HttpClient: one reply per call, in order, and a log of what it saw.
-const scripted = (replies: ReadonlyArray<Reply>) => {
+const scripted = (replies: ReadonlyArray<Reply>, env: Record<string, string> = {}) => {
 	const seen: Array<Seen> = [];
 	const queue = [...replies];
 	const client = HttpClient.make((request, url) => {
@@ -31,6 +31,7 @@ const scripted = (replies: ReadonlyArray<Reply>) => {
 			body: bodyText(request),
 		});
 		const reply = queue.shift() ?? { status: 500 };
+		if (reply === "hang") return Effect.never;
 		if (reply === "unreachable") {
 			return Effect.fail(
 				new HttpClientError.HttpClientError({
@@ -55,6 +56,8 @@ const scripted = (replies: ReadonlyArray<Reply>) => {
 				ConfigProvider.fromUnknown({
 					GATEWAI_MANAGEMENT_URL: "http://proxy.test/v0/management",
 					GATEWAI_MANAGEMENT_KEY: "test-key",
+					GATEWAI_MANAGEMENT_TIMEOUT: "50 millis",
+					...env,
 				}),
 			),
 		),
@@ -136,6 +139,48 @@ test("runbook actions post the documented bodies", async () => {
 		["POST", "/auth-files/refresh", '{"name":"codex-altay@uinaf.dev.json"}'],
 		["PATCH", "/auth-files/fields", '{"name":"codex-altay@uinaf.dev.json","websockets":false}'],
 	]);
+});
+
+test("a hung gateway times out into unreachable on both clients", async () => {
+	const reads = scripted(["hang", "hang", "hang"]);
+	const read = await run(reads.layer, (api) =>
+		api.authFiles.pipe(Effect.catchTag("ManagementError", (error) => Effect.succeed(error.reason))),
+	);
+	expect(read).toMatchObject({ _tag: "Success", value: "unreachable" });
+	expect(reads.seen).toHaveLength(3);
+
+	const pops = scripted(["hang"]);
+	const pop = await run(pops.layer, (api) =>
+		api
+			.popUsage(1)
+			.pipe(Effect.catchTag("ManagementError", (error) => Effect.succeed(error.reason))),
+	);
+	expect(pop).toMatchObject({ _tag: "Success", value: "unreachable" });
+	expect(pops.seen).toHaveLength(1);
+});
+
+test("a missing key is an unauthorized fault, not a layer failure", async () => {
+	const { seen, layer } = scripted([{ status: 200, body: authFiles }], {
+		GATEWAI_MANAGEMENT_KEY: "",
+	});
+	const exit = await run(layer, (api) =>
+		api.authFiles.pipe(Effect.catchTag("ManagementError", (error) => Effect.succeed(error.reason))),
+	);
+	expect(exit).toMatchObject({ _tag: "Success", value: "unauthorized" });
+	expect(seen).toHaveLength(0);
+});
+
+test("a mismatch never quotes the body", async () => {
+	const { layer } = scripted([{ status: 200, body: { files: [{ secret: "tok-123" }] } }]);
+	const exit = await run(layer, (api) =>
+		api.authFiles.pipe(
+			Effect.catchTag("ManagementError", (error) => Effect.succeed(error.message)),
+		),
+	);
+	expect(exit).toMatchObject({
+		_tag: "Success",
+		value: "response did not match the expected shape",
+	});
 });
 
 test("the key never appears in the error", async () => {

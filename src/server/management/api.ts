@@ -1,6 +1,18 @@
 import { readFileSync } from "node:fs";
 
-import { Config, Context, Effect, Layer, Redacted, Schedule, Schema, flow } from "effect";
+import {
+	Cause,
+	Config,
+	ConfigProvider,
+	Context,
+	Duration,
+	Effect,
+	Layer,
+	Redacted,
+	Schedule,
+	Schema,
+	flow,
+} from "effect";
 import {
 	FetchHttpClient,
 	HttpClient,
@@ -35,6 +47,10 @@ const BaseUrl = Config.String("GATEWAI_MANAGEMENT_URL").pipe(
 	Config.withDefault("http://127.0.0.1:8317/v0/management"),
 );
 
+const RequestTimeout = Config.Duration("GATEWAI_MANAGEMENT_TIMEOUT").pipe(
+	Config.withDefault(Duration.seconds(10)),
+);
+
 // The key comes from the environment in development and from a mounted secret
 // file in production. It stays `Redacted` so it never prints.
 const ManagementKey = Config.Redacted("GATEWAI_MANAGEMENT_KEY").pipe(
@@ -45,9 +61,37 @@ const ManagementKey = Config.Redacted("GATEWAI_MANAGEMENT_KEY").pipe(
 	),
 );
 
-const toManagementError = (error: HttpClientError.HttpClientError | Schema.SchemaError) => {
+// Config is read per call, not at layer build, so a missing key surfaces as an
+// `unauthorized` fault on management calls only and never stops the runtime.
+const settings = Effect.all({ baseUrl: BaseUrl, key: ManagementKey, timeout: RequestTimeout }).pipe(
+	Effect.mapError(
+		(cause) =>
+			new ManagementError({
+				reason: "unauthorized",
+				message: "management url or key is not configured",
+				cause,
+			}),
+	),
+);
+
+// Schema failures can quote the offending body, which for `auth-files` is token
+// material, so messages stay fixed and the detail lives only in `cause`.
+const toManagementError = (
+	error: HttpClientError.HttpClientError | Schema.SchemaError | Cause.TimeoutError,
+) => {
 	if (Schema.isSchemaError(error)) {
-		return new ManagementError({ reason: "mismatch", message: error.message, cause: error });
+		return new ManagementError({
+			reason: "mismatch",
+			message: "response did not match the expected shape",
+			cause: error,
+		});
+	}
+	if (Cause.isTimeoutError(error)) {
+		return new ManagementError({
+			reason: "unreachable",
+			message: "request timed out",
+			cause: error,
+		});
 	}
 	const reason = error.reason;
 	if (reason._tag === "StatusCodeError") {
@@ -59,10 +103,24 @@ const toManagementError = (error: HttpClientError.HttpClientError | Schema.Schem
 		});
 	}
 	if (reason._tag === "DecodeError" || reason._tag === "EmptyBodyError") {
-		return new ManagementError({ reason: "mismatch", message: error.message, cause: error });
+		return new ManagementError({
+			reason: "mismatch",
+			message: "response body could not be decoded",
+			cause: error,
+		});
 	}
 	return new ManagementError({ reason: "unreachable", message: error.message, cause: error });
 };
+
+const decodeWith =
+	<S extends Schema.Top>(schema: S) =>
+	<E extends HttpClientError.HttpClientError | Cause.TimeoutError, R>(
+		response: Effect.Effect<HttpClientResponse.HttpClientResponse, E, R>,
+	) =>
+		response.pipe(
+			Effect.flatMap(HttpClientResponse.schemaBodyJson(schema)),
+			Effect.mapError(toManagementError),
+		);
 
 export class ManagementApi extends Context.Service<
 	ManagementApi,
@@ -84,68 +142,82 @@ export class ManagementApi extends Context.Service<
 	static readonly layerNoDeps = Layer.effect(
 		ManagementApi,
 		Effect.gen(function* () {
-			const baseUrl = yield* BaseUrl;
-			const key = yield* ManagementKey;
+			const http = yield* HttpClient.HttpClient;
+			// The provider is captured here so per-call reads see the same source the
+			// layer was built with (tests inject one; production reads the env).
+			const provider = yield* ConfigProvider.ConfigProvider;
 
-			// `usage-queue` pops on read, so that client never retries.
-			const once = (yield* HttpClient.HttpClient).pipe(
-				HttpClient.mapRequest(
-					flow(
-						HttpClientRequest.prependUrl(baseUrl),
-						HttpClientRequest.bearerToken(key),
-						HttpClientRequest.acceptJson,
-					),
-				),
-				HttpClient.filterStatusOk,
-			);
-			const client = once.pipe(
-				HttpClient.retryTransient({ schedule: Schedule.exponential(200), times: 2 }),
-			);
-
-			const decodeWith =
-				<S extends Schema.Top>(schema: S) =>
-				<E extends HttpClientError.HttpClientError, R>(
-					response: Effect.Effect<HttpClientResponse.HttpClientResponse, E, R>,
-				) =>
-					response.pipe(
-						Effect.flatMap(HttpClientResponse.schemaBodyJson(schema)),
-						Effect.mapError(toManagementError),
+			// `once` never retries: `usage-queue` pops on read and actions are not
+			// idempotent. `retrying` wraps it for plain reads.
+			const clients = Effect.map(
+				Effect.provideService(settings, ConfigProvider.ConfigProvider, provider),
+				({ baseUrl, key, timeout }) => {
+					const once = http.pipe(
+						HttpClient.mapRequest(
+							flow(
+								HttpClientRequest.prependUrl(baseUrl),
+								HttpClientRequest.bearerToken(key),
+								HttpClientRequest.acceptJson,
+							),
+						),
+						HttpClient.transformResponse(Effect.timeout(timeout)),
+						HttpClient.filterStatusOk,
 					);
+					const retrying = once.pipe(
+						HttpClient.retryTransient({ schedule: Schedule.exponential(200), times: 2 }),
+					);
+					return { once, retrying };
+				},
+			);
+			type Clients = Effect.Success<typeof clients>;
 
-			const authFiles = client
-				.get("/auth-files")
-				.pipe(decodeWith(AuthFiles), Effect.withSpan("ManagementApi.authFiles"));
+			const read = <A>(use: (client: Clients["retrying"]) => Effect.Effect<A, ManagementError>) =>
+				Effect.flatMap(clients, ({ retrying }) => use(retrying));
+			const consume = <A>(use: (client: Clients["once"]) => Effect.Effect<A, ManagementError>) =>
+				Effect.flatMap(clients, ({ once }) => use(once));
+
+			const authFiles = read((client) =>
+				client.get("/auth-files").pipe(decodeWith(AuthFiles)),
+			).pipe(Effect.withSpan("ManagementApi.authFiles"));
 
 			const popUsage = Effect.fn("ManagementApi.popUsage")((count: number) =>
-				once
-					.get("/usage-queue", { urlParams: { count: String(count) } })
-					.pipe(decodeWith(UsageQueue)),
+				consume((client) =>
+					client
+						.get("/usage-queue", { urlParams: { count: String(count) } })
+						.pipe(decodeWith(UsageQueue)),
+				),
 			);
 
 			const resetQuota = Effect.fn("ManagementApi.resetQuota")((authIndex: string) =>
-				HttpClientRequest.post("/reset-quota").pipe(
-					HttpClientRequest.bodyJsonUnsafe({ auth_index: authIndex }),
-					once.execute,
-					decodeWith(ResetQuotaResponse),
+				consume((client) =>
+					HttpClientRequest.post("/reset-quota").pipe(
+						HttpClientRequest.bodyJsonUnsafe({ auth_index: authIndex }),
+						client.execute,
+						decodeWith(ResetQuotaResponse),
+					),
 				),
 			);
 
 			const refresh = Effect.fn("ManagementApi.refresh")((name: string) =>
-				HttpClientRequest.post("/auth-files/refresh").pipe(
-					HttpClientRequest.bodyJsonUnsafe({ name }),
-					once.execute,
-					decodeWith(RefreshResponse),
-					Effect.asVoid,
+				consume((client) =>
+					HttpClientRequest.post("/auth-files/refresh").pipe(
+						HttpClientRequest.bodyJsonUnsafe({ name }),
+						client.execute,
+						decodeWith(RefreshResponse),
+						Effect.asVoid,
+					),
 				),
 			);
 
 			const patchFields = Effect.fn("ManagementApi.patchFields")(
 				(name: string, fields: Record<string, unknown>) =>
-					HttpClientRequest.patch("/auth-files/fields").pipe(
-						HttpClientRequest.bodyJsonUnsafe({ name, ...fields }),
-						once.execute,
-						decodeWith(PatchFieldsResponse),
-						Effect.asVoid,
+					consume((client) =>
+						HttpClientRequest.patch("/auth-files/fields").pipe(
+							HttpClientRequest.bodyJsonUnsafe({ name, ...fields }),
+							client.execute,
+							decodeWith(PatchFieldsResponse),
+							Effect.asVoid,
+						),
 					),
 			);
 
@@ -153,14 +225,18 @@ export class ManagementApi extends Context.Service<
 				authFiles,
 				pools: Effect.map(authFiles, poolsOf),
 				popUsage,
-				apiKeys: client.get("/api-keys").pipe(
-					decodeWith(ApiKeys),
-					Effect.map((body) => body["api-keys"]),
+				apiKeys: read((client) =>
+					client.get("/api-keys").pipe(
+						decodeWith(ApiKeys),
+						Effect.map((body) => body["api-keys"]),
+					),
 				),
-				config: client.get("/config").pipe(decodeWith(ProxyConfig)),
-				latestVersion: client.get("/latest-version").pipe(
-					decodeWith(LatestVersion),
-					Effect.map((body) => body["latest-version"]),
+				config: read((client) => client.get("/config").pipe(decodeWith(ProxyConfig))),
+				latestVersion: read((client) =>
+					client.get("/latest-version").pipe(
+						decodeWith(LatestVersion),
+						Effect.map((body) => body["latest-version"]),
+					),
 				),
 				resetQuota,
 				refresh,

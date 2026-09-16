@@ -29,6 +29,13 @@ const epochToIso = (value: string | undefined): string | null => {
 	return Number.isFinite(seconds) && seconds > 0 ? new Date(seconds * 1000).toISOString() : null;
 };
 
+// Signals are strings on the wire; a blank or non-numeric value is not a zero.
+const finite = (value: string | undefined): number | null => {
+	if (value === undefined || value.trim() === "") return null;
+	const parsed = Number(value);
+	return Number.isFinite(parsed) ? parsed : null;
+};
+
 const percent = (value: number): number => Math.min(100, Math.max(0, Math.round(value)));
 
 const statusOf = (value: string | undefined, limitReached?: string): WindowStatus => {
@@ -56,12 +63,12 @@ const anthropicWindows = (signals: Signals): ReadonlyArray<QuotaWindow> => {
 		["7d_oi", "weekly opus"],
 	];
 	return spans.flatMap(([span, label]) => {
-		const utilization = signals[`Anthropic-Ratelimit-Unified-${span}-Utilization`];
-		if (utilization === undefined) return [];
+		const utilization = finite(signals[`Anthropic-Ratelimit-Unified-${span}-Utilization`]);
+		if (utilization === null) return [];
 		return [
 			{
 				label,
-				usedPercent: percent(Number(utilization) * 100),
+				usedPercent: percent(utilization * 100),
 				resetsAt: epochToIso(signals[`Anthropic-Ratelimit-Unified-${span}-Reset`]),
 				status: statusOf(signals[`Anthropic-Ratelimit-Unified-${span}-Status`]),
 			},
@@ -77,10 +84,10 @@ const codexFamily = (
 	limitReached: string | undefined,
 ): ReadonlyArray<QuotaWindow> =>
 	(["Primary", "Secondary"] as const).flatMap((tier) => {
-		const used = signals[`${prefix}${tier}-Used-Percent`];
+		const used = finite(signals[`${prefix}${tier}-Used-Percent`]);
 		const minutes = signals[`${prefix}${tier}-Window-Minutes`];
 		// A zero-minute window is a placeholder tier the upstream sends on some models.
-		if (used === undefined || minutes === "0") return [];
+		if (used === null || minutes === "0") return [];
 		const span = windowLabel(minutes);
 		const label = limitName
 			? span
@@ -90,9 +97,9 @@ const codexFamily = (
 		return [
 			{
 				label,
-				usedPercent: percent(Number(used)),
+				usedPercent: percent(used),
 				resetsAt: epochToIso(signals[`${prefix}${tier}-Reset-At`]),
-				status: limitReached === "true" || Number(used) >= 100 ? "limited" : "allowed",
+				status: limitReached === "true" || used >= 100 ? "limited" : "allowed",
 			},
 		];
 	});
@@ -130,9 +137,14 @@ export const quotaOf = (file: AuthFile): Quota => {
 	const snapshots = [file.quota, ...Object.values(file.model_quotas ?? {})].filter(
 		(snapshot) => snapshot?.signals !== undefined,
 	);
-	const ordered = [...snapshots].sort((a, b) =>
-		(a?.observed_at ?? "").localeCompare(b?.observed_at ?? ""),
-	);
+	// Offsets differ between snapshots (`+08:00` on the host, `Z` upstream), so
+	// order by instant, not by string.
+	const instant = (value: string | undefined) => (value ? Date.parse(value) : Number.NaN);
+	const ordered = [...snapshots].sort((a, b) => {
+		const left = instant(a?.observed_at);
+		const right = instant(b?.observed_at);
+		return (Number.isNaN(left) ? -Infinity : left) - (Number.isNaN(right) ? -Infinity : right);
+	});
 	const windows = new Map<string, QuotaWindow>();
 	let observedAt: string | null = null;
 	let credits: Quota["credits"] = null;
