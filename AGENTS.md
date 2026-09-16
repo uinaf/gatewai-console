@@ -15,6 +15,12 @@ record: [#1](https://github.com/uinaf/gatewai-console/issues/1). Visual brief:
   `design-check src` runs in verify.
 - Effect for server services (`src/server/`), bridged to Start handlers through
   one `ManagedRuntime` in `src/server/runtime.ts`.
+- `src/server/management/` is the only code that knows the CLIProxyAPI
+  management API: `Schema` wire shapes (unknown keys and token material are
+  dropped at decode), `ManagementApi` over `HttpClient`, and the quota
+  normaliser that folds provider headers into `QuotaWindow`s. Reads retry
+  twice on transient failures; `usage-queue` never retries because popping
+  consumes. Contract tests run on redacted fixtures captured from t102.
 - SQLite through Effect SQL: `@effect/sql-sqlite-node` (`node:sqlite` underneath,
   no native build) provides `SqlClient`; `effect/unstable/sql` owns queries,
   models, and the migrator. Migrations are Effects in `src/db/migrations.ts`,
@@ -39,9 +45,12 @@ vp run verify                 # the CI gate; see package.json#scripts.verify
 node .output/server/index.mjs # the production build after vp run build
 ```
 
-Runtime environment is read in [src/server/database.ts](src/server/database.ts)
-(`GATEWAI_DB_PATH`) and by nitro (`PORT`, `HOST`);
-container defaults are in the [Dockerfile](Dockerfile).
+Runtime environment: `GATEWAI_DB_PATH` (default `data/console.sqlite`) in
+[src/server/database.ts](src/server/database.ts); `GATEWAI_MANAGEMENT_URL`
+(default loopback `8317`) and `GATEWAI_MANAGEMENT_KEY` or
+`GATEWAI_MANAGEMENT_KEY_FILE` in
+[src/server/management/api.ts](src/server/management/api.ts); `PORT` and
+`HOST` by nitro. Container defaults are in the [Dockerfile](Dockerfile).
 
 ## Invariants
 
@@ -51,25 +60,29 @@ container defaults are in the [Dockerfile](Dockerfile).
 - The management key never lands in the repo, logs, client bundle, or test
   fixtures. Production reads it from a container secret file.
 - One console per proxy. Popping the usage queue consumes it.
-- Product routes wait for the design. Until then `/` renders the shell only.
+- Product routes follow the shared design canvas one screen per PR. `/` renders
+  the shell until pools lands.
 
 ## Dev against live
 
 [#3](https://github.com/uinaf/gatewai-console/issues/3) owns the convention:
-`GATEWAI_MANAGEMENT_KEY` from the operator's vault in `.env.local` (gitignored,
-see `.env.example`), pointed at the t102 gateway. Nothing in this skeleton calls
-the proxy yet.
+`GATEWAI_MANAGEMENT_URL` and `GATEWAI_MANAGEMENT_KEY` from the operator's vault
+in `.env.local` (gitignored, see `.env.example`), pointed at the t102 gateway.
+`vp dev` loads it. `curl -s localhost:3000/api/pools` prints the normalised
+pools; the key never appears in the payload or the log.
 
 ## Layout
 
-| Path                     | Role                                                 |
-| ------------------------ | ---------------------------------------------------- |
-| `src/routes/`            | TanStack file routes; `healthz.ts` is a server route |
-| `src/server/database.ts` | `Database` layer: `SqlClient`, pragmas, migrations   |
-| `src/server/runtime.ts`  | `ManagedRuntime` shared by handlers                  |
-| `src/server/health.ts`   | `/healthz` payload: version, uptime, db reachability |
-| `src/db/migrations.ts`   | Migration Effects (`meta` only for now)              |
-| `.github/workflows/`     | `verify` (PR, merge queue, call), `scan`, `release`  |
+| Path                      | Role                                                 |
+| ------------------------- | ---------------------------------------------------- |
+| `src/routes/`             | TanStack file routes; `healthz.ts` is a server route |
+| `src/server/database.ts`  | `Database` layer: `SqlClient`, pragmas, migrations   |
+| `src/server/runtime.ts`   | `ManagedRuntime` shared by handlers                  |
+| `src/server/health.ts`    | `/healthz` payload: version, uptime, db reachability |
+| `src/server/management/`  | `ManagementApi`, wire schemas, quota normaliser      |
+| `src/routes/api/pools.ts` | Normalised credentials for the pools screen          |
+| `src/db/migrations.ts`    | Migration Effects (`meta` only for now)              |
+| `.github/workflows/`      | `verify` (PR, merge queue, call), `scan`, `release`  |
 
 ## Delivery
 

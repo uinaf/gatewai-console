@@ -7,7 +7,7 @@ import { SqlClient } from "effect/unstable/sql";
 
 import { migrations } from "#/db/migrations";
 
-const DbPath = Config.String("GATEWAI_DB_PATH").pipe(Config.withDefault("/data/console.sqlite"));
+const DbPath = Config.String("GATEWAI_DB_PATH").pipe(Config.withDefault("data/console.sqlite"));
 
 // WAL and a 5s busy timeout are the driver defaults; foreign keys are per connection
 // and the client holds exactly one.
