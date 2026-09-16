@@ -1,9 +1,9 @@
 # gatewai-console
 
-Operator console for CLIProxyAPI gateways: pools, ledger, alerts. One
-console per proxy. Design record: [#1](https://github.com/uinaf/gatewai-console/issues/1);
-visual brief: [docs/design-brief.md](docs/design-brief.md); operator-facing
-usage: [README.md](README.md).
+Operator console for CLIProxyAPI gateways: pools, ledger, alerts. What it is
+and how to run it: [README.md](README.md). Design record:
+[#1](https://github.com/uinaf/gatewai-console/issues/1); visual brief:
+[docs/design-brief.md](docs/design-brief.md).
 
 ## Stack and boundaries
 
