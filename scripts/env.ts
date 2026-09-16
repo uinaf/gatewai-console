@@ -1,7 +1,7 @@
 // Writes .env.local from the operator's 1Password vault so `vp dev` can reach
 // the t102 gateway without anyone pasting a key. Values never reach stdout.
 import { execFileSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
+import { chmodSync, writeFileSync } from "node:fs";
 
 const account = process.env.OP_ACCOUNT ?? "my.1password.com";
 const items = {
@@ -35,6 +35,8 @@ const lines = [
 	...Object.entries(items).map(([key, ref]) => `${key}=${read(ref)}`),
 ];
 writeFileSync(".env.local", `${lines.join("\n")}\n`, { mode: 0o600 });
+// The mode above only applies when the file is created; tighten an existing one too.
+chmodSync(".env.local", 0o600);
 console.log(
 	`env: wrote .env.local (${Object.keys(fixed).length + Object.keys(items).length} keys, mode 600).`,
 );
