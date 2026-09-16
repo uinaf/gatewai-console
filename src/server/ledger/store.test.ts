@@ -7,7 +7,7 @@ import { SqlClient } from "effect/unstable/sql";
 import { expect, test } from "vitest";
 
 import { Database } from "#/server/database";
-import { hashKey } from "#/server/ledger/clients";
+import { ClientLabels, hashKey } from "#/server/ledger/clients";
 import {
 	insertRequests,
 	pruneRequests,
@@ -40,7 +40,10 @@ const at = "2026-09-16T15:10:00.000Z";
 
 test("a popped batch stores once, hashes the key, and re-pops are no-ops", async () => {
 	const rows = records.map((record) => toRow(record, at));
-	const registry = new Map([[hashKey(records[0]?.api_key ?? ""), "macbook"]]);
+	const registry = new ClientLabels(
+		new Map([[hashKey(records[0]?.api_key ?? ""), "macbook"]]),
+		new Map(),
+	);
 	const result = await run(
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
@@ -88,8 +91,8 @@ test("a label removed from the registry reverts to a fingerprint", async () => {
 	const labels = await run(
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
-			yield* insertRequests(rows, new Map([[hash, "macbook"]]));
-			yield* insertRequests(rows, new Map());
+			yield* insertRequests(rows, new ClientLabels(new Map([[hash, "macbook"]]), new Map()));
+			yield* insertRequests(rows, ClientLabels.empty());
 			return yield* sql<{
 				label: string | null;
 			}>`SELECT label FROM client_keys WHERE hash = ${hash}`;
@@ -147,7 +150,7 @@ test("rollups aggregate per hour and pruning keeps the window", async () => {
 	const result = await run(
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
-			yield* insertRequests(rows, new Map());
+			yield* insertRequests(rows, ClientLabels.empty());
 			yield* rollupSince("2026-09-16T14:00:00.000Z");
 			yield* rollupSince("2026-09-16T14:00:00.000Z");
 			const rollups = yield* sql<{ hour: string; requests: number; failed: number }>`

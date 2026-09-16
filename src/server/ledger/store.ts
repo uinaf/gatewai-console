@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { Effect } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 
-import { hashKey } from "#/server/ledger/clients";
+import { type ClientLabels, hashKey } from "#/server/ledger/clients";
 import type { Credential } from "#/server/management/credential";
 import type { UsageRecord } from "#/server/management/schema";
 
@@ -77,10 +77,7 @@ export const toRow = (record: UsageRecord, receivedAt: string): RequestRow => {
 };
 
 /** Inserts a popped batch in one transaction; re-pops of the same ids are no-ops. Returns rows written. */
-export const insertRequests = (
-	rows: ReadonlyArray<RequestRow>,
-	registry: ReadonlyMap<string, string>,
-) =>
+export const insertRequests = (rows: ReadonlyArray<RequestRow>, registry: ClientLabels) =>
 	Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;
 		if (rows.length === 0) return 0;
