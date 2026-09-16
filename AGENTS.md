@@ -15,12 +15,12 @@ record: [#1](https://github.com/uinaf/gatewai-console/issues/1). Visual brief:
   `design-check src` runs in verify.
 - Effect for server services (`src/server/`), bridged to Start handlers through
   one `ManagedRuntime` in `src/server/runtime.ts`.
-- Drizzle over SQLite. Driver is `node:sqlite` (`DatabaseSync`) behind
-  `drizzle-orm/sqlite-proxy`; Drizzle ships no native `node:sqlite` driver yet.
-  Chosen over `better-sqlite3` because Node 24 has the module unflagged, the
-  image needs no native build, and the distroless runtime has no toolchain.
-  Pragmas are set on open; migrations in `drizzle/` run when the `Database`
-  layer builds, so a fresh volume is migrated on first boot.
+- SQLite through Effect SQL: `@effect/sql-sqlite-node` (`node:sqlite` underneath,
+  no native build) provides `SqlClient`; `effect/unstable/sql` owns queries,
+  models, and the migrator. Migrations are Effects in `src/db/migrations.ts`,
+  keyed `<id>_<name>`, run in one transaction when the `Database` layer builds,
+  so a fresh volume is migrated on first boot. No Drizzle, no separate
+  migrations directory in the image.
 - Runtime image: distroless `nodejs24`, UID 1000, read-only root, only `/data`
   writable, port 8080, no shell. Runtime Node lags `.node-version` by a few
   patch releases; keep `node:sqlite` usage to APIs both have. A bind-mounted
@@ -36,12 +36,11 @@ pnpm install --frozen-lockfile
 vp dev                        # http://localhost:3000
 vp check                      # oxfmt + oxlint + typecheck
 vp run verify                 # the CI gate; see package.json#scripts.verify
-vp run db:generate            # drizzle-kit migration from src/db/schema.ts
 node .output/server/index.mjs # the production build after vp run build
 ```
 
 Runtime environment is read in [src/server/database.ts](src/server/database.ts)
-(`GATEWAI_DB_PATH`, `GATEWAI_MIGRATIONS_DIR`) and by nitro (`PORT`, `HOST`);
+(`GATEWAI_DB_PATH`) and by nitro (`PORT`, `HOST`);
 container defaults are in the [Dockerfile](Dockerfile).
 
 ## Invariants
@@ -66,11 +65,10 @@ the proxy yet.
 | Path                     | Role                                                 |
 | ------------------------ | ---------------------------------------------------- |
 | `src/routes/`            | TanStack file routes; `healthz.ts` is a server route |
-| `src/server/database.ts` | `Database` service: node:sqlite, WAL, migrations     |
+| `src/server/database.ts` | `Database` layer: `SqlClient`, pragmas, migrations   |
 | `src/server/runtime.ts`  | `ManagedRuntime` shared by handlers                  |
 | `src/server/health.ts`   | `/healthz` payload: version, uptime, db reachability |
-| `src/db/schema.ts`       | Drizzle schema (`meta` only for now)                 |
-| `drizzle/`               | Checked-in migrations                                |
+| `src/db/migrations.ts`   | Migration Effects (`meta` only for now)              |
 | `.github/workflows/`     | `verify` (PR, merge queue, call), `scan`, `release`  |
 
 ## Delivery

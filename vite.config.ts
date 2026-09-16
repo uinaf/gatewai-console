@@ -10,7 +10,6 @@ const ignorePatterns = [
 	".claude/skills/**",
 	"dist/**",
 	".output/**",
-	"drizzle/**",
 	"public/**",
 	"src/routeTree.gen.ts",
 ];
