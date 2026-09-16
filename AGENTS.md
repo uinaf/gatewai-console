@@ -43,9 +43,12 @@ record: [#1](https://github.com/uinaf/gatewai-console/issues/1). Visual brief:
   5-point clear margin so jitter never refires), `cooldown`, `unhealthy`,
   `stalled` (no pop for N minutes). Every snapshot pass evaluates all rules;
   a crossing opens one row in `alert_incidents` and closes it on clear.
-  Delivery is a Better Stack heartbeat per rule: firing posts `<url>/fail`
-  with the detail, clearing posts `<url>`. Hosts hold heartbeat URLs only,
-  never the Uptime API token; every pass posts each rule's current state.
+  Delivery: email through Cloudflare Email Sending on every crossing (one
+  message on fire, one on clear) when `CLOUDFLARE_ACCOUNT_ID`, the sending
+  token or its `_FILE`, and the from/to addresses are set; and, per rule, an
+  optional Better Stack heartbeat that every pass feeds with the rule's
+  current state (`<url>/fail` while firing). Neither is required; the console
+  always shows the state.
 - Runtime image: distroless `nodejs24`, UID 1000, read-only root, only `/data`
   writable, port 8080, no shell. Runtime Node lags `.node-version` by a few
   patch releases; keep `node:sqlite` usage to APIs both have. A bind-mounted
@@ -80,6 +83,8 @@ Runtime environment: `GATEWAI_DB_PATH` (default `data/console.sqlite`) in
 `GATEWAI_HOST_LABEL` (a short host label) in [src/functions/pools.ts](src/functions/pools.ts);
 `GATEWAI_COLLECT`, `GATEWAI_CLIENTS_FILE` in [src/server/ledger/](src/server/ledger/);
 `GATEWAI_ALERTS_FILE` in [src/server/alerts/rules.ts](src/server/alerts/rules.ts);
+`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_EMAIL_SENDING_API_TOKEN[_FILE]`,
+`GATEWAI_ALERT_EMAIL_FROM`, `GATEWAI_ALERT_EMAIL_TO` in [src/server/alerts/email.ts](src/server/alerts/email.ts);
 `PORT` and `HOST` by nitro. Container defaults are in the [Dockerfile](Dockerfile).
 
 ## Invariants

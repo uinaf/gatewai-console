@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { SqlClient } from "effect/unstable/sql";
 
 import { deliver } from "#/server/alerts/deliver";
+import { sendEmail } from "#/server/alerts/email";
 import { evaluate } from "#/server/alerts/evaluate";
 import { AlertRules } from "#/server/alerts/rules";
 import { applyCondition, clearMissing, readStates } from "#/server/alerts/store";
@@ -43,8 +44,19 @@ export const runAlerts = (pools: Pools | null, now: string) =>
 		for (const { condition, firing } of results) {
 			seen.add(`${condition.ruleId}\u0000${condition.subject}`);
 			const transition = yield* applyCondition(condition, firing, now);
+			if (transition === "none") continue;
 			if (transition === "fired") fired += 1;
-			if (transition === "cleared") cleared += 1;
+			else cleared += 1;
+			// One mail per crossing; a failed send is logged and not retried, the
+			// heartbeat and the console keep the state.
+			yield* sendEmail({
+				subject: `[gatewai] ${transition === "fired" ? "firing" : "clear"}: ${condition.ruleId} · ${condition.subject}`,
+				text: `${condition.what}\n\n${condition.detail}\n\nrule ${condition.ruleId}\nsubject ${condition.subject}\nat ${now}\n`,
+			}).pipe(
+				Effect.catch((error) =>
+					Effect.logWarning("alerts: email delivery failed", condition.ruleId, String(error)),
+				),
+			);
 		}
 		if (pools) cleared += yield* clearMissing(seen, now);
 		for (const rule of rules) {

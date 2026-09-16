@@ -223,6 +223,58 @@ test("a failed heartbeat post is retried on the next pass", async () => {
 	expect(states[0]?.firing).toBe(1);
 });
 
+test("email goes out once per crossing when Cloudflare sending is configured", async () => {
+	const dir = mkdtempSync(join(tmpdir(), "gatewai-alerts-"));
+	writeFileSync(join(dir, "alerts.json"), JSON.stringify({ rules: [rule] }));
+	const posts: Array<{ url: string; body: string }> = [];
+	const client = HttpClient.make((request) => {
+		posts.push({
+			url: request.url,
+			body: request.body._tag === "Uint8Array" ? new TextDecoder().decode(request.body.body) : "",
+		});
+		return Effect.succeed(HttpClientResponse.fromWeb(request, new Response("{}", { status: 200 })));
+	});
+	const env = Layer.mergeAll(Database, Layer.succeed(HttpClient.HttpClient, client)).pipe(
+		Layer.provideMerge(
+			ConfigProvider.layer(
+				ConfigProvider.fromUnknown({
+					GATEWAI_DB_PATH: join(dir, "e.sqlite"),
+					GATEWAI_ALERTS_FILE: join(dir, "alerts.json"),
+					CLOUDFLARE_ACCOUNT_ID: "acct",
+					CLOUDFLARE_EMAIL_SENDING_API_TOKEN: "cf-token",
+					GATEWAI_ALERT_EMAIL_FROM: "alerts@example.com",
+					GATEWAI_ALERT_EMAIL_TO: "ops@example.com",
+				}),
+			),
+		),
+	);
+	await Effect.gen(function* () {
+		yield* runAlerts(
+			{ observedAt: "x", credentials: [withWeekly(codex, 95)] },
+			"2026-09-16T00:01:00Z",
+		);
+		yield* runAlerts(
+			{ observedAt: "x", credentials: [withWeekly(codex, 95)] },
+			"2026-09-16T00:02:00Z",
+		);
+		yield* runAlerts(
+			{ observedAt: "x", credentials: [withWeekly(codex, 0)] },
+			"2026-09-16T00:03:00Z",
+		);
+	}).pipe(Effect.provide(env), Effect.runPromise);
+	expect(posts.map((p) => p.url)).toEqual([
+		"https://api.cloudflare.com/client/v4/accounts/acct/email/sending/send",
+		"https://api.cloudflare.com/client/v4/accounts/acct/email/sending/send",
+	]);
+	expect(JSON.parse(posts[0]?.body ?? "{}")).toMatchObject({
+		from: "alerts@example.com",
+		to: "ops@example.com",
+	});
+	expect(posts[0]?.body).toContain("firing: codex-weekly-low");
+	expect(posts[1]?.body).toContain("clear: codex-weekly-low");
+	expect(posts.some((p) => p.body.includes("cf-token"))).toBe(false);
+});
+
 test("rules with duplicate ids or out-of-range thresholds are rejected", async () => {
 	const dir = mkdtempSync(join(tmpdir(), "gatewai-alerts-"));
 	const bad = [
