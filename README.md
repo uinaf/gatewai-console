@@ -15,7 +15,7 @@ Status: pools live; ledger and alerts next. Tracker epic [#1](https://github.com
 
 ```bash
 pnpm install --frozen-lockfile
-OP_ITEM=op://<vault>/<item> GATEWAI_MANAGEMENT_URL=https://<gateway>/v0/management pnpm run env
+OP_ITEM='op://VAULT/ITEM' GATEWAI_MANAGEMENT_URL='https://gateway.example/v0/management' pnpm run env
 pnpm run doctor                 # toolchain, env, gateway reachability
 pnpm run dev                    # http://localhost:3000 (PORT=… to move it)
 pnpm run verify                 # the CI gate
