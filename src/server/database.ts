@@ -59,7 +59,16 @@ export class Database extends Context.Service<
 					migrate(
 						db,
 						async (queries) => {
-							for (const query of queries) sqlite.exec(query);
+							// One transaction for the whole batch: a failing statement must not leave
+							// earlier schema changes committed without their migration record.
+							sqlite.exec("BEGIN");
+							try {
+								for (const query of queries) sqlite.exec(query);
+								sqlite.exec("COMMIT");
+							} catch (cause) {
+								sqlite.exec("ROLLBACK");
+								throw cause;
+							}
 						},
 						{ migrationsFolder },
 					),

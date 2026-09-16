@@ -19,7 +19,6 @@
 		"knip": "knip",
 		"audit": "pnpm audit --audit-level high",
 		"db:generate": "drizzle-kit generate",
-		"db:migrate": "node scripts/migrate.ts",
 		"verify": "pnpm run audit && pnpm run generate-routes && vp check && pnpm run design:check && pnpm run test && pnpm run knip && pnpm run build",
 		"prepare": "vp config --no-agent"
 	},

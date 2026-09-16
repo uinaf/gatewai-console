@@ -15,14 +15,16 @@ Status: skeleton. Tracker epic [#1](https://github.com/uinaf/gatewai-console/iss
 
 ```bash
 pnpm install --frozen-lockfile
-vp dev                          # http://localhost:3000
-vp run verify                   # the CI gate
+pnpm run dev                    # http://localhost:3000
+pnpm run verify                 # the CI gate
 ```
+
+`vp` lives in `node_modules/.bin`; `pnpm run <script>` and `pnpm exec vp` find it.
 
 Production build and container:
 
 ```bash
-vp run build && GATEWAI_DB_PATH=/tmp/console.sqlite node .output/server/index.mjs
+pnpm run build && GATEWAI_DB_PATH=/tmp/console.sqlite node .output/server/index.mjs
 docker build -t gatewai-console:local .
 docker run --rm --read-only --tmpfs /tmp -v gatewai-console-data:/data -p 8080:8080 gatewai-console:local
 curl localhost:8080/healthz     # {"ok":true,"version":"0.1.0","uptimeSeconds":1,"db":"reachable"}
