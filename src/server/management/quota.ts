@@ -77,11 +77,21 @@ const anthropicWindows = (signals: Signals): ReadonlyArray<QuotaWindow> => {
 };
 
 // `X-Codex-Primary-*` and `X-Codex-<Family>-Primary-*` share one shape.
+const codexStatus = (
+	used: number,
+	limitReached: string | undefined,
+	allowed: string | undefined,
+): WindowStatus => {
+	if (allowed?.toLowerCase() === "false") return "rejected";
+	return limitReached?.toLowerCase() === "true" || used >= 100 ? "limited" : "allowed";
+};
+
 const codexFamily = (
 	signals: Signals,
 	prefix: string,
 	limitName: string | null,
 	limitReached: string | undefined,
+	allowed: string | undefined,
 ): ReadonlyArray<QuotaWindow> =>
 	(["Primary", "Secondary"] as const).flatMap((tier) => {
 		const used = finite(signals[`${prefix}${tier}-Used-Percent`]);
@@ -99,13 +109,19 @@ const codexFamily = (
 				label,
 				usedPercent: percent(used),
 				resetsAt: epochToIso(signals[`${prefix}${tier}-Reset-At`]),
-				status: limitReached === "true" || used >= 100 ? "limited" : "allowed",
+				status: codexStatus(used, limitReached, allowed),
 			},
 		];
 	});
 
 const codexWindows = (signals: Signals): ReadonlyArray<QuotaWindow> => {
-	const top = codexFamily(signals, "X-Codex-", null, signals["X-Codex-Limit-Reached"]);
+	const top = codexFamily(
+		signals,
+		"X-Codex-",
+		null,
+		signals["X-Codex-Limit-Reached"],
+		signals["X-Codex-Allowed"],
+	);
 	const families = new Set<string>();
 	for (const key of Object.keys(signals)) {
 		const match = /^X-Codex-(.+)-Primary-Used-Percent$/.exec(key);
@@ -114,7 +130,13 @@ const codexWindows = (signals: Signals): ReadonlyArray<QuotaWindow> => {
 	const named = [...families].flatMap((family) => {
 		const prefix = `X-Codex-${family}-`;
 		const name = signals[`${prefix}Limit-Name`] ?? family.replace(/^Additional-/, "");
-		return codexFamily(signals, prefix, name.toLowerCase(), signals[`${prefix}Limit-Reached`]);
+		return codexFamily(
+			signals,
+			prefix,
+			name.toLowerCase(),
+			signals[`${prefix}Limit-Reached`],
+			signals[`${prefix}Allowed`],
+		);
 	});
 	return [...top, ...named];
 };
@@ -154,10 +176,10 @@ export const quotaOf = (file: AuthFile): Quota => {
 		const signals = snapshot?.signals ?? {};
 		for (const window of windowsOf(file.provider, signals)) windows.set(window.label, window);
 		if (snapshot?.observed_at) observedAt = snapshot.observed_at;
-		const balance = signals["X-Codex-Credits-Balance"];
-		if (balance !== undefined) {
+		const balance = finite(signals["X-Codex-Credits-Balance"]);
+		if (balance !== null) {
 			credits = {
-				balance: Number(balance),
+				balance,
 				unlimited: boolean(signals["X-Codex-Credits-Unlimited"]),
 			};
 		}

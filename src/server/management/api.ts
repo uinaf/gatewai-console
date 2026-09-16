@@ -31,8 +31,10 @@ import {
 	RefreshResponse,
 	ResetQuotaResponse,
 	UsageQueue,
-	type UsageRecord,
+	UsageRecord,
 } from "#/server/management/schema";
+
+const decodeUsageRecord = Schema.decodeUnknownResult(UsageRecord);
 
 // The only module that knows the CLIProxyAPI management API. Reasons map to the
 // fault screens: unreachable, unauthorized, and mismatch (a body the schema no
@@ -53,26 +55,39 @@ const RequestTimeout = Config.Duration("GATEWAI_MANAGEMENT_TIMEOUT").pipe(
 
 // The key comes from the environment in development and from a mounted secret
 // file in production. It stays `Redacted` so it never prints.
-const ManagementKey = Config.Redacted("GATEWAI_MANAGEMENT_KEY").pipe(
+const KeySource = Config.Redacted("GATEWAI_MANAGEMENT_KEY").pipe(
+	Config.map((key) => ({ kind: "inline" as const, key })),
 	Config.orElse(() =>
 		Config.String("GATEWAI_MANAGEMENT_KEY_FILE").pipe(
-			Config.map((file) => Redacted.make(readFileSync(file, "utf8").trim())),
+			Config.map((file) => ({ kind: "file" as const, file })),
 		),
+	),
+);
+
+const notConfigured = (message: string) => (cause: unknown) =>
+	new ManagementError({ reason: "unauthorized", message, cause });
+
+const ManagementKey = KeySource.pipe(
+	Effect.mapError(notConfigured("management key is not configured")),
+	Effect.flatMap((source) =>
+		source.kind === "inline"
+			? Effect.succeed(source.key)
+			: Effect.try({
+					try: () => Redacted.make(readFileSync(source.file, "utf8").trim()),
+					catch: notConfigured("management key file could not be read"),
+				}),
 	),
 );
 
 // Config is read per call, not at layer build, so a missing key surfaces as an
 // `unauthorized` fault on management calls only and never stops the runtime.
-const settings = Effect.all({ baseUrl: BaseUrl, key: ManagementKey, timeout: RequestTimeout }).pipe(
-	Effect.mapError(
-		(cause) =>
-			new ManagementError({
-				reason: "unauthorized",
-				message: "management url or key is not configured",
-				cause,
-			}),
+const settings = Effect.all({
+	baseUrl: BaseUrl.pipe(Effect.mapError(notConfigured("management url is not configured"))),
+	key: ManagementKey,
+	timeout: RequestTimeout.pipe(
+		Effect.mapError(notConfigured("management timeout is not a duration")),
 	),
-);
+});
 
 // Schema failures can quote the offending body, which for `auth-files` is token
 // material, so messages stay fixed and the detail lives only in `cause`.
@@ -180,11 +195,25 @@ export class ManagementApi extends Context.Service<
 				client.get("/auth-files").pipe(decodeWith(AuthFiles)),
 			).pipe(Effect.withSpan("ManagementApi.authFiles"));
 
+			// Popping is destructive, so one malformed record must not discard the
+			// batch: decode each record and log what was dropped.
 			const popUsage = Effect.fn("ManagementApi.popUsage")((count: number) =>
 				consume((client) =>
-					client
-						.get("/usage-queue", { urlParams: { count: String(count) } })
-						.pipe(decodeWith(UsageQueue)),
+					client.get("/usage-queue", { urlParams: { count: String(count) } }).pipe(
+						decodeWith(UsageQueue),
+						Effect.flatMap((records) => {
+							const kept: Array<UsageRecord> = [];
+							let dropped = 0;
+							for (const record of records) {
+								const result = decodeUsageRecord(record);
+								if (result._tag === "Success") kept.push(result.success);
+								else dropped += 1;
+							}
+							return dropped === 0
+								? Effect.succeed(kept)
+								: Effect.logWarning("usage-queue: dropped records", dropped).pipe(Effect.as(kept));
+						}),
+					),
 				),
 			);
 
@@ -204,7 +233,17 @@ export class ManagementApi extends Context.Service<
 						HttpClientRequest.bodyJsonUnsafe({ name }),
 						client.execute,
 						decodeWith(RefreshResponse),
-						Effect.asVoid,
+						Effect.flatMap((body) =>
+							body.ok
+								? Effect.void
+								: Effect.fail(
+										new ManagementError({
+											reason: "status",
+											message: "refresh reported failure",
+											cause: body,
+										}),
+									),
+						),
 					),
 				),
 			);

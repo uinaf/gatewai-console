@@ -96,7 +96,8 @@ export const UsageRecord = Schema.Struct({
 });
 export type UsageRecord = typeof UsageRecord.Type;
 
-export const UsageQueue = Schema.Array(UsageRecord);
+// Records are decoded one by one after the pop; see `ManagementApi.popUsage`.
+export const UsageQueue = Schema.Array(Schema.Unknown);
 
 export const ApiKeys = Schema.Struct({ "api-keys": Schema.Array(Schema.String) });
 
@@ -117,6 +118,9 @@ export const ResetQuotaResponse = Schema.Struct({
 });
 export type ResetQuotaResponse = typeof ResetQuotaResponse.Type;
 
-export const RefreshResponse = Schema.Struct({ ok: Schema.Boolean });
+export const RefreshResponse = Schema.Struct({
+	ok: Schema.Boolean,
+	error: Schema.optionalKey(Schema.String),
+});
 
 export const PatchFieldsResponse = Schema.Struct({ status: Schema.String });

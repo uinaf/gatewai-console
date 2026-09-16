@@ -26,13 +26,17 @@ export const Route = createFileRoute("/api/pools")({
 							),
 						),
 					)
-					// Layer construction (config, database) failing is a console fault, not a gateway one.
-					.catch((cause: unknown) => ({
-						ok: false as const,
-						status: 500,
-						reason: "internal" as const,
-						message: cause instanceof Error ? cause.message : String(cause),
-					}));
+					// Layer construction (config, database) failing is a console fault, not a
+					// gateway one. The cause goes to the log, not to the browser.
+					.catch((cause: unknown) => {
+						console.error("pools: runtime failed", cause);
+						return {
+							ok: false as const,
+							status: 500,
+							reason: "internal" as const,
+							message: "console failed before asking the gateway",
+						};
+					});
 				const { status, ...body } = result;
 				return Response.json(body, { status, headers: { "cache-control": "no-store" } });
 			},

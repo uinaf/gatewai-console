@@ -80,6 +80,28 @@ test("non-numeric signals are skipped and offsets order by instant", () => {
 	]);
 });
 
+test("codex allowance flags and blank credits are honoured", () => {
+	const base = files.files.find((file) => file.provider === "codex");
+	if (!base) throw new Error("fixture missing codex");
+	const credential = credentialOf({
+		...base,
+		model_quotas: {},
+		quota: {
+			observed_at: "2026-09-16T10:00:00Z",
+			signals: {
+				"X-Codex-Allowed": "false",
+				"X-Codex-Primary-Used-Percent": "40",
+				"X-Codex-Primary-Window-Minutes": "10080",
+				"X-Codex-Credits-Balance": "",
+			},
+		},
+	});
+	expect(credential.quota.windows).toEqual([
+		{ label: "weekly", usedPercent: 40, resetsAt: null, status: "rejected" },
+	]);
+	expect(credential.quota.credits).toBeNull();
+});
+
 test("pools carry the gateway observation time", () => {
 	expect(poolsOf(files).observedAt).toBe("2026-09-16T15:01:57.038963298Z");
 });

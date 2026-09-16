@@ -183,6 +183,37 @@ test("a mismatch never quotes the body", async () => {
 	});
 });
 
+test("a popped batch keeps its valid records", async () => {
+	const { layer } = scripted([{ status: 200, body: [...usageQueue, { provider: 1 }] }]);
+	const exit = await run(layer, (api) => api.popUsage(3));
+	expect(exit._tag).toBe("Success");
+	if (exit._tag === "Success") expect(exit.value).toHaveLength(usageQueue.length);
+});
+
+test("refresh reporting ok:false is a fault", async () => {
+	const { layer } = scripted([{ status: 200, body: { ok: false, error: "refresh failed" } }]);
+	const exit = await run(layer, (api) =>
+		api
+			.refresh("x")
+			.pipe(Effect.catchTag("ManagementError", (error) => Effect.succeed(error.reason))),
+	);
+	expect(exit).toMatchObject({ _tag: "Success", value: "status" });
+});
+
+test("an unreadable key file is an unauthorized fault", async () => {
+	const { seen, layer } = scripted([{ status: 200, body: authFiles }], {
+		GATEWAI_MANAGEMENT_KEY: "",
+		GATEWAI_MANAGEMENT_KEY_FILE: "/nonexistent/key",
+	});
+	const exit = await run(layer, (api) =>
+		api.authFiles.pipe(
+			Effect.catchTag("ManagementError", (error) => Effect.succeed(error.message)),
+		),
+	);
+	expect(exit).toMatchObject({ _tag: "Success", value: "management key file could not be read" });
+	expect(seen).toHaveLength(0);
+});
+
 test("the key never appears in the error", async () => {
 	const { layer } = scripted(["unreachable", "unreachable", "unreachable"]);
 	const exit = await run(layer, (api) => api.authFiles);
