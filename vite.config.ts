@@ -17,7 +17,7 @@ const ignorePatterns = [
 export default defineConfig({
 	resolve: { tsconfigPaths: true },
 	define: { __APP_VERSION__: JSON.stringify(pkg.version) },
-	plugins: [tanstackStart(), nitro(), viteReact()],
+	plugins: [tanstackStart(), nitro({ plugins: ["./src/server/boot.ts"] }), viteReact()],
 	fmt: {
 		useTabs: true,
 		singleQuote: false,

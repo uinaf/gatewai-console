@@ -27,6 +27,16 @@ record: [#1](https://github.com/uinaf/gatewai-console/issues/1). Visual brief:
   keyed `<id>_<name>`, run in one transaction when the `Database` layer builds,
   so a fresh volume is migrated on first boot. No Drizzle, no separate
   migrations directory in the image.
+- The ledger (`src/server/ledger/`): `Collector` is a background layer inside
+  the runtime that pops `usage-queue` every 5 s (the proxy keeps 60 s and
+  popping consumes, so exactly one console per proxy), stores rows keyed on
+  `request_id` in one transaction, snapshots each credential's normalised quota
+  every 30 s only when it changed, and hourly recomputes rollups for the last
+  48 h and prunes raw rows past 90 days. The raw client key is sha256-hashed
+  before storage; `GATEWAI_CLIENTS_FILE` (JSON `{ "<sha256>": "label" }`,
+  optional, read-only) names keys, anything else is a 16-char fingerprint.
+  `GATEWAI_COLLECT=false` turns the loops off. State and errors land in
+  `collector_state` and surface on `/healthz`.
 - Runtime image: distroless `nodejs24`, UID 1000, read-only root, only `/data`
   writable, port 8080, no shell. Runtime Node lags `.node-version` by a few
   patch releases; keep `node:sqlite` usage to APIs both have. A bind-mounted
@@ -59,6 +69,7 @@ Runtime environment: `GATEWAI_DB_PATH` (default `data/console.sqlite`) in
 `GATEWAI_MANAGEMENT_KEY_FILE`, `GATEWAI_MANAGEMENT_TIMEOUT` in
 [src/server/management/api.ts](src/server/management/api.ts);
 `GATEWAI_HOST_LABEL` (`t102`, `eu`) in [src/functions/pools.ts](src/functions/pools.ts);
+`GATEWAI_COLLECT`, `GATEWAI_CLIENTS_FILE` in [src/server/ledger/](src/server/ledger/);
 `PORT` and `HOST` by nitro. Container defaults are in the [Dockerfile](Dockerfile).
 
 ## Invariants
@@ -92,7 +103,8 @@ pools; the key never appears in the payload or the log.
 | `src/server/health.ts`    | `/healthz` payload: version, uptime, db reachability |
 | `src/server/management/`  | `ManagementApi`, wire schemas, quota normaliser      |
 | `src/routes/api/pools.ts` | Normalised credentials for the pools screen          |
-| `src/db/migrations.ts`    | Migration Effects (`meta` only for now)              |
+| `src/server/ledger/`      | Collector loops, ledger store, client key registry   |
+| `src/db/migrations.ts`    | Migration Effects: `meta`, then the ledger tables    |
 | `.github/workflows/`      | `verify` (PR, merge queue, call), `scan`, `release`  |
 
 ## Delivery
