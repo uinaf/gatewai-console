@@ -7,10 +7,13 @@
 		"#/*": "./src/*"
 	},
 	"scripts": {
-		"dev": "vp dev --port 3000",
+		"dev": "vp dev --port ${PORT:-3000} --strictPort",
 		"generate-routes": "tsr generate",
 		"build": "vp build",
 		"start": "node .output/server/index.mjs",
+		"env": "node scripts/env.ts",
+		"doctor": "node scripts/doctor.ts",
+		"smoke": "node scripts/smoke.ts",
 		"fmt": "vp fmt",
 		"lint": "vp lint",
 		"check": "vp check",

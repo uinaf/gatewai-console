@@ -9,13 +9,15 @@ next to the proxy on each gateway host and reads the management API over
 loopback. Configuration stays in [uinaf/the infrastructure repo](the operator's infrastructure repo);
 the console is read-only plus the runbook actions.
 
-Status: skeleton. Tracker epic [#1](https://github.com/uinaf/gatewai-console/issues/1).
+Status: pools live; ledger and alerts next. Tracker epic [#1](https://github.com/uinaf/gatewai-console/issues/1).
 
 ## Run
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm run dev                    # http://localhost:3000
+pnpm run env                    # .env.local from 1Password, points dev at t102
+pnpm run doctor                 # toolchain, env, gateway reachability
+pnpm run dev                    # http://localhost:3000 (PORT=… to move it)
 pnpm run verify                 # the CI gate
 ```
 
@@ -26,6 +28,7 @@ Production build and container:
 ```bash
 pnpm run build && GATEWAI_DB_PATH=/tmp/console.sqlite node .output/server/index.mjs
 docker build -t gatewai-console:local .
+pnpm run smoke gatewai-console:local   # runs it hardened, checks /healthz and /
 docker run --rm --read-only --tmpfs /tmp -v gatewai-console-data:/data -p 8080:8080 gatewai-console:local
 curl localhost:8080/healthz     # {"ok":true,"version":"0.1.0","uptimeSeconds":1,"db":"reachable"}
 ```

@@ -36,3 +36,7 @@ jobs:
 
       - name: Build the container image
         run: docker build --tag gatewai-console:ci .
+
+      # The shipped server, hardened like production: read-only root, /data volume.
+      - name: Smoke the container image
+        run: pnpm run smoke gatewai-console:ci
