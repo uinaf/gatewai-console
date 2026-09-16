@@ -18,7 +18,7 @@ const Registry = Schema.Union([
 	}),
 ]);
 
-/** Labels keyed by full hash or by a 16-char fingerprint; `lookup` resolves either. */
+/** Labels keyed by full hash or by a 16-char fingerprint; `get` resolves either. */
 export class ClientLabels {
 	readonly #byHash: ReadonlyMap<string, string>;
 	readonly #byPrefix: ReadonlyMap<string, string>;

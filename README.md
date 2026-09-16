@@ -46,9 +46,9 @@ in [.env.example](.env.example). Two optional read-only mounts:
 
 - `GATEWAI_ALERTS_FILE`: alert rules, see [alerts.example.json](alerts.example.json).
 - `GATEWAI_CLIENTS_FILE`: names client keys in the ledger. Either a JSON map of
-  `sha256(client key)` to a label, or an inventory `{ "clients": [{ "name",
-"fingerprint" }] }` where the fingerprint is the first 16 hex characters of
-  that hash.
+  `sha256(client key)` to a label, or an inventory of the form
+  `{ "clients": [{ "name": "devbox", "fingerprint": "<16 hex>" }] }` where the
+  fingerprint is the first 16 hex characters of that hash.
 
 `GET /healthz` reports the version, database reachability, and the collector's
 last pop, lag, rows written, and last error. Run exactly one console per proxy:
