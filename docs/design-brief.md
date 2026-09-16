@@ -26,7 +26,7 @@ Use the uinaf design system. Read it before drawing anything:
   field groups and the dashed danger zone; use that language for the actions
   and alert rules. Do not invent a second shell.
 - One typeface (Berkeley Mono, from the CDN), near-black, hairline borders, one
-  accent, visible structure. Light and dark.
+  accent, visible structure. Dark only; do not produce a light theme.
 - Voice: short, dry, periods at the end. No emoji, no exclamation marks, no
   gradients, no illustrations, no SaaS sludge. `↗` external, `→` forward, `·`
   separator.
@@ -204,8 +204,8 @@ illustrations. Empty ledger says "no requests in range." in one line.
 
 ## Deliverables
 
-- Pools at 1280 and 390, light and dark.
-- Ledger and Alerts at 1280, dark.
+- Pools at 1280 and 390.
+- Ledger and Alerts at 1280.
 - Component sheet: credential card in `active`, `cooling` (0% weekly, resets
   in 2d 21h), `disabled`; quota window bar at 9, 77, 100 percent; sparkline;
   stale topbar stamp; alert row firing and clear.
