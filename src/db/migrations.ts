@@ -82,4 +82,26 @@ export const migrations = {
 		const sql = yield* SqlClient.SqlClient;
 		yield* sql`ALTER TABLE credentials ADD COLUMN auth_index text`;
 	}),
+	"0004_alerts": Effect.gen(function* () {
+		const sql = yield* SqlClient.SqlClient;
+		yield* sql`CREATE TABLE alert_state (
+			rule_id text NOT NULL,
+			subject text NOT NULL,
+			firing integer NOT NULL DEFAULT 0,
+			since text,
+			last_fired text,
+			detail text,
+			PRIMARY KEY (rule_id, subject)
+		)`;
+		yield* sql`CREATE TABLE alert_incidents (
+			id integer PRIMARY KEY AUTOINCREMENT,
+			rule_id text NOT NULL,
+			subject text NOT NULL,
+			what text NOT NULL,
+			detail text,
+			started_at text NOT NULL,
+			ended_at text
+		)`;
+		yield* sql`CREATE INDEX alert_incidents_started ON alert_incidents (started_at)`;
+	}),
 };
