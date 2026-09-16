@@ -91,7 +91,7 @@ export const evaluate = (
 									subject: credential.name,
 									what: "cooldown",
 									detail: cooldown
-										? `${credential.label} cooling${cooldown.model ? ` for ${cooldown.model}` : ""}${cooldown.until ? ` until ${cooldown.until}` : ""}`
+										? `${credential.label} cooling${cooldown.model ? ` for ${cooldown.model}` : ""}${cooldown.until ? ` until ${cooldown.until.slice(0, 16).replace("T", " ")}z` : ""}`
 										: `${credential.label} not cooling`,
 									remaining: null,
 								},

@@ -50,7 +50,11 @@ export const describe = (rule: Rule): string => {
 };
 
 export const scopeLabel = (rule: Rule): string =>
-	rule.scope === undefined || rule.scope === "all" ? "all credentials" : rule.scope;
+	rule.kind === "stalled"
+		? "collector"
+		: rule.scope === undefined || rule.scope === "all"
+			? "all credentials"
+			: rule.scope;
 
 /** Rules from `GATEWAI_ALERTS_FILE`; an absent or broken file means no rules and a warning. */
 export const AlertRules = Config.String("GATEWAI_ALERTS_FILE").pipe(
