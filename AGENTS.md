@@ -48,9 +48,10 @@ node .output/server/index.mjs # the production build after vp run build
 Runtime environment: `GATEWAI_DB_PATH` (default `data/console.sqlite`) in
 [src/server/database.ts](src/server/database.ts); `GATEWAI_MANAGEMENT_URL`
 (default loopback `8317`) and `GATEWAI_MANAGEMENT_KEY` or
-`GATEWAI_MANAGEMENT_KEY_FILE` in
-[src/server/management/api.ts](src/server/management/api.ts); `PORT` and
-`HOST` by nitro. Container defaults are in the [Dockerfile](Dockerfile).
+`GATEWAI_MANAGEMENT_KEY_FILE`, `GATEWAI_MANAGEMENT_TIMEOUT` in
+[src/server/management/api.ts](src/server/management/api.ts);
+`GATEWAI_HOST_LABEL` (`t102`, `eu`) in [src/functions/pools.ts](src/functions/pools.ts);
+`PORT` and `HOST` by nitro. Container defaults are in the [Dockerfile](Dockerfile).
 
 ## Invariants
 
@@ -60,8 +61,10 @@ Runtime environment: `GATEWAI_DB_PATH` (default `data/console.sqlite`) in
 - The management key never lands in the repo, logs, client bundle, or test
   fixtures. Production reads it from a container secret file.
 - One console per proxy. Popping the usage queue consumes it.
-- Product routes follow the shared design canvas one screen per PR. `/` renders
-  the shell until pools lands.
+- Product routes follow the shared design canvas one screen per PR. Pools is
+  live at `/`; ledger and alerts are inert nav entries until they land.
+- The browser never talks to the proxy. Pages load through server functions in
+  `src/functions/`, which run inside the `ManagedRuntime`.
 
 ## Dev against live
 
