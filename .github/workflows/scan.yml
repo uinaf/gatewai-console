@@ -25,5 +25,3 @@ jobs:
     # pin bump per repository. Renovate is configured not to update
     # `uinaf/.github` references.
     uses: uinaf/.github/.github/workflows/scan.yml@main
-    with:
-      runner: "blacksmith-2vcpu-ubuntu-2404"

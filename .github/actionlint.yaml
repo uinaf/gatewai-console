@@ -1,5 +1,0 @@
-# Blacksmith runners are self-hosted from GitHub's perspective, so actionlint
-# cannot resolve their labels from its built-in GitHub-hosted list.
-self-hosted-runner:
-  labels:
-    - blacksmith-2vcpu-ubuntu-2404
