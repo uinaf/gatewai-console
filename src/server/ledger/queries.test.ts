@@ -7,8 +7,19 @@ import { SqlClient } from "effect/unstable/sql";
 import { expect, test } from "vitest";
 
 import { Database } from "#/server/database";
-import { breakdown, previousRange, quotaHistory, summary } from "#/server/ledger/queries";
-import { insertRequests, recordQuotaSnapshot, type RequestRow } from "#/server/ledger/store";
+import {
+	breakdown,
+	credentialLabels,
+	previousRange,
+	quotaHistory,
+	summary,
+} from "#/server/ledger/queries";
+import {
+	insertRequests,
+	recordQuotaSnapshot,
+	type RequestRow,
+	upsertCredentials,
+} from "#/server/ledger/store";
 import type { Credential } from "#/server/management/credential";
 
 const layer = () =>
@@ -172,4 +183,38 @@ test("breakdown stays under budget on 90 days of gateway-scale rows", async () =
 	);
 	console.log(`ledger breakdown+summary over 60k rows: ${Math.round(ms)}ms`);
 	expect(ms).toBeLessThan(1000);
+});
+
+test("the credential dimension labels rows by auth_index", async () => {
+	const rows = await run(
+		Effect.gen(function* () {
+			yield* upsertCredentials(
+				[
+					{
+						name: "codex-a.json",
+						authIndex: "cred-a",
+						provider: "codex",
+						label: "a@example.com",
+						plan: null,
+						status: "active",
+						statusMessage: null,
+						cooldowns: [],
+						success: 0,
+						failed: 0,
+						lastRefresh: null,
+						recentRequests: [],
+						websockets: null,
+						quota: { observedAt: null, windows: [], credits: null, plan: null, overage: null },
+					},
+				],
+				"2026-09-15T00:00:00.000Z",
+			);
+			yield* insertRequests(
+				[row({ request_id: "1", timestamp: "2026-09-15T01:00:00.000Z" })],
+				new Map(),
+			);
+			return yield* breakdown("credential", range, yield* credentialLabels);
+		}),
+	);
+	expect(rows[0]).toMatchObject({ key: "cred-a", label: "a@example.com" });
 });

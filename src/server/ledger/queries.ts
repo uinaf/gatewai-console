@@ -165,11 +165,14 @@ export const clientLabels = Effect.gen(function* () {
 	return new Map(rows.flatMap((row) => (row.label ? [[row.hash, row.label] as const] : [])));
 });
 
-/** Labels for the credential dimension: auth_index → credential label, via what auth-files reported. */
+/** Labels for the credential dimension: requests carry auth_index, credentials map it to a label. */
 export const credentialLabels = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
-	const rows = yield* sql<{ name: string; label: string }>`SELECT name, label FROM credentials`;
-	return new Map(rows.map((row) => [row.name, row.label] as const));
+	const rows = yield* sql<{ auth_index: string | null; label: string }>`
+		SELECT auth_index, label FROM credentials WHERE auth_index IS NOT NULL`;
+	return new Map(
+		rows.flatMap((row) => (row.auth_index ? [[row.auth_index, row.label] as const] : [])),
+	);
 });
 
 export const credentialNames = Effect.gen(function* () {

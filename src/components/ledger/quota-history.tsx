@@ -20,9 +20,11 @@ interface Series {
 export function QuotaHistory({
 	points,
 	range,
+	fetchedAt,
 }: {
 	points: ReadonlyArray<QuotaPoint>;
 	range: Range;
+	fetchedAt: string;
 }) {
 	const [hover, setHover] = useState<number | null>(null);
 	const from = Date.parse(range.from);
@@ -52,6 +54,8 @@ export function QuotaHistory({
 		new Date(from + ((to - from) * i) / 4).toISOString(),
 	);
 	const tick = spanDays > 2 ? dayTick : hourTick;
+	// Presets end at the request time; a custom range ends where the operator said.
+	const endsNow = Math.abs(to - Date.parse(fetchedAt)) < 60_000;
 
 	const onMove = (event: React.PointerEvent<SVGSVGElement>) => {
 		if (observations.length === 0) return;
@@ -125,7 +129,7 @@ export function QuotaHistory({
 					</svg>
 					<div className="u-axis">
 						{ticks.map((t, i) => (
-							<span key={t}>{i === ticks.length - 1 ? "now" : tick(t)}</span>
+							<span key={t}>{i === ticks.length - 1 && endsNow ? "now" : tick(t)}</span>
 						))}
 					</div>
 					{hovered ? (

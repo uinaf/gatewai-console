@@ -29,7 +29,18 @@ export interface LedgerQuery {
 	readonly credential?: string;
 }
 
-export interface LedgerView {
+export type LedgerView = LedgerLoaded | LedgerFault;
+
+interface LedgerFault {
+	readonly ok: false;
+	readonly host: string;
+	readonly operator: null;
+	readonly fetchedAt: string;
+	readonly message: string;
+}
+
+interface LedgerLoaded {
+	readonly ok: true;
 	readonly host: string;
 	readonly operator: string | null;
 	readonly fetchedAt: string;
@@ -53,13 +64,13 @@ const PRESET_MS: Record<Exclude<Preset, "custom">, number> = {
 	"30d": 30 * 86_400_000,
 };
 
-const resolveRange = (query: LedgerQuery, now: number): Range => {
+export const resolveRange = (query: LedgerQuery, now: number): Range => {
 	if (query.preset === "custom" && query.from && query.to) {
 		const from = Date.parse(query.from);
 		const to = Date.parse(query.to);
-		if (Number.isFinite(from) && Number.isFinite(to) && from < to) {
-			// A date-only `to` means the whole day.
-			const end = query.to.length === 10 ? to + 86_400_000 : to;
+		// A date-only `to` means the whole day, so a single calendar day is a valid range.
+		const end = query.to.length === 10 ? to + 86_400_000 : to;
+		if (Number.isFinite(from) && Number.isFinite(end) && from < end) {
 			return { from: new Date(from).toISOString(), to: new Date(end).toISOString() };
 		}
 	}
@@ -100,6 +111,7 @@ export const loadLedger = createServerFn({ method: "GET" })
 					const credential = data.credential ?? credentials[0]?.name ?? null;
 					const state = yield* readCollectorState;
 					return {
+						ok: true as const,
 						host,
 						operator: getRequestHeader("tailscale-user-login") ?? null,
 						fetchedAt: fetchedAt.toISOString(),
@@ -118,23 +130,12 @@ export const loadLedger = createServerFn({ method: "GET" })
 			)
 			.catch((cause: unknown): LedgerView => {
 				console.error("ledger: runtime failed", cause);
-				const now = Date.now();
-				const range = resolveRange(data, now);
-				const empty = { requests: 0, failed: 0, tokens: 0, cached: 0 };
 				return {
+					ok: false,
 					host: "unknown",
 					operator: null,
-					fetchedAt: new Date(now).toISOString(),
-					observedAt: null,
-					range,
-					current: empty,
-					previous: empty,
-					by: data.by,
-					rows: [],
-					credentials: [],
-					credential: null,
-					history: [],
-					error: "console failed before reading the ledger",
+					fetchedAt: new Date().toISOString(),
+					message: "console failed before reading the ledger",
 				};
 			}),
 	);

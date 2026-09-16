@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { Breakdown } from "#/components/ledger/breakdown";
+import { Fault } from "#/components/pools/fault";
 import { QuotaHistory } from "#/components/ledger/quota-history";
 import { LedgerStats } from "#/components/ledger/stats";
 import { Shell } from "#/components/shell";
@@ -38,6 +39,14 @@ function LedgerPage() {
 	useAutoRefresh(60_000);
 	const preset = search.preset ?? "7d";
 	const by = search.by ?? "client";
+
+	if (!view.ok) {
+		return (
+			<Shell host={view.host} operator={view.operator} stamp={{ observedAt: null, serverNow: now }}>
+				<Fault reason="internal" message={view.message} host={view.host} />
+			</Shell>
+		);
+	}
 
 	return (
 		<Shell
@@ -149,7 +158,7 @@ function LedgerPage() {
 						</nav>
 					) : null}
 				</div>
-				<QuotaHistory points={view.history} range={view.range} />
+				<QuotaHistory points={view.history} range={view.range} fetchedAt={view.fetchedAt} />
 			</section>
 		</Shell>
 	);
