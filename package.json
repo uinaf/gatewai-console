@@ -1,0 +1,53 @@
+{
+	"name": "gatewai-console",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"imports": {
+		"#/*": "./src/*"
+	},
+	"scripts": {
+		"dev": "vp dev --port 3000",
+		"generate-routes": "tsr generate",
+		"build": "vp build",
+		"start": "node .output/server/index.mjs",
+		"fmt": "vp fmt",
+		"lint": "vp lint",
+		"check": "vp check",
+		"design:check": "design-check src",
+		"test": "vp test --run",
+		"knip": "knip",
+		"audit": "pnpm audit --audit-level high",
+		"db:generate": "drizzle-kit generate",
+		"db:migrate": "node scripts/migrate.ts",
+		"verify": "pnpm run audit && pnpm run generate-routes && vp check && pnpm run design:check && pnpm run test && pnpm run knip && pnpm run build",
+		"prepare": "vp config --no-agent"
+	},
+	"dependencies": {
+		"@tanstack/react-router": "1.170.36",
+		"@tanstack/react-start": "1.168.54",
+		"@uinaf/design": "^1.15.0",
+		"drizzle-orm": "^0.45.2",
+		"effect": "4.0.0-rc.115",
+		"react": "^19.2.0",
+		"react-dom": "^19.2.0"
+	},
+	"devDependencies": {
+		"@tanstack/router-cli": "1.167.28",
+		"@types/node": "^24.0.0",
+		"@types/react": "^19.2.0",
+		"@types/react-dom": "^19.2.0",
+		"@vitejs/plugin-react": "^6.0.1",
+		"drizzle-kit": "^0.31.10",
+		"knip": "^6.32.2",
+		"nitro": "latest",
+		"typescript": "^7.0.2",
+		"vite": "npm:@voidzero-dev/vite-plus-core@0.3.2",
+		"vite-plus": "0.3.2",
+		"vitest": "^4.1.10"
+	},
+	"engines": {
+		"node": ">=24.21.0"
+	},
+	"packageManager": "pnpm@12.0.0"
+}

@@ -1,0 +1,16 @@
+node_modules
+.DS_Store
+dist
+.output
+.nitro
+.tanstack
+/.agents/*
+!/.agents/skills/
+plans/
+*.local
+.env
+.env.*
+!.env.example
+/data/
+*.sqlite
+*.sqlite-*
