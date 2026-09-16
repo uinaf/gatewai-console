@@ -1,0 +1,13 @@
+packages:
+  - "."
+
+overrides:
+  vite: npm:@voidzero-dev/vite-plus-core@0.3.2
+  # drizzle-kit > @esbuild-kit still resolves an esbuild below the patched floor (GHSA-67mh-4wv8-2f99).
+  "esbuild@<0.25.0": ">=0.25.0"
+
+allowBuilds:
+  esbuild: true
+
+minimumReleaseAgeExclude:
+  - "@uinaf/design@1.15.0"

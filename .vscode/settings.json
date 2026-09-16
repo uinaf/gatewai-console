@@ -1,0 +1,13 @@
+{
+	"files.watcherExclude": { "**/routeTree.gen.ts": true },
+	"search.exclude": { "**/routeTree.gen.ts": true },
+	"files.readonlyInclude": { "**/routeTree.gen.ts": true },
+	"npm.scriptRunner": "vp",
+	"oxc.fmt.configPath": "./vite.config.ts",
+	"[javascript]": { "editor.defaultFormatter": "oxc.oxfmt" },
+	"[javascriptreact]": { "editor.defaultFormatter": "oxc.oxfmt" },
+	"[typescript]": { "editor.defaultFormatter": "oxc.oxfmt" },
+	"[typescriptreact]": { "editor.defaultFormatter": "oxc.oxfmt" },
+	"[json]": { "editor.defaultFormatter": "oxc.oxfmt" },
+	"[jsonc]": { "editor.defaultFormatter": "oxc.oxfmt" }
+}
