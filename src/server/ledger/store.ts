@@ -199,6 +199,7 @@ export const readCollectorState = Effect.gen(function* () {
 		lastPopCount: Number(map.get("last_pop_count") ?? 0),
 		rowsWritten: Number(map.get("rows_written") ?? 0),
 		lastSnapshotAt: map.get("last_snapshot_at") ?? null,
+		startedAt: map.get("started_at") ?? null,
 		lastError: latest ? `${latest.stage}: ${latest.value}` : null,
 		lastErrorAt: latest?.at || null,
 	};

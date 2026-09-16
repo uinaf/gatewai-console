@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as HealthzRouteImport } from './routes/healthz'
 import { Route as LedgerRouteImport } from './routes/ledger'
 import { Route as ApiPoolsRouteImport } from './routes/api/pools'
@@ -17,6 +18,11 @@ import { Route as ApiPoolsRouteImport } from './routes/api/pools'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AlertsRoute = AlertsRouteImport.update({
+  id: '/alerts',
+  path: '/alerts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HealthzRoute = HealthzRouteImport.update({
@@ -37,12 +43,14 @@ const ApiPoolsRoute = ApiPoolsRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/alerts': typeof AlertsRoute
   '/healthz': typeof HealthzRoute
   '/ledger': typeof LedgerRoute
   '/api/pools': typeof ApiPoolsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/alerts': typeof AlertsRoute
   '/healthz': typeof HealthzRoute
   '/ledger': typeof LedgerRoute
   '/api/pools': typeof ApiPoolsRoute
@@ -50,20 +58,22 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/alerts': typeof AlertsRoute
   '/healthz': typeof HealthzRoute
   '/ledger': typeof LedgerRoute
   '/api/pools': typeof ApiPoolsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/healthz' | '/ledger' | '/api/pools'
+  fullPaths: '/' | '/alerts' | '/healthz' | '/ledger' | '/api/pools'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/healthz' | '/ledger' | '/api/pools'
-  id: '__root__' | '/' | '/healthz' | '/ledger' | '/api/pools'
+  to: '/' | '/alerts' | '/healthz' | '/ledger' | '/api/pools'
+  id: '__root__' | '/' | '/alerts' | '/healthz' | '/ledger' | '/api/pools'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AlertsRoute: typeof AlertsRoute
   HealthzRoute: typeof HealthzRoute
   LedgerRoute: typeof LedgerRoute
   ApiPoolsRoute: typeof ApiPoolsRoute
@@ -76,6 +86,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/alerts': {
+      id: '/alerts'
+      path: '/alerts'
+      fullPath: '/alerts'
+      preLoaderRoute: typeof AlertsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/healthz': {
@@ -104,6 +121,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AlertsRoute: AlertsRoute,
   HealthzRoute: HealthzRoute,
   LedgerRoute: LedgerRoute,
   ApiPoolsRoute: ApiPoolsRoute,

@@ -4,6 +4,7 @@ import { join } from "node:path";
 
 import { ConfigProvider, Effect, Layer, Schema } from "effect";
 import { ClientRegistry } from "#/server/ledger/clients";
+import { FetchHttpClient } from "effect/unstable/http";
 import { SqlClient } from "effect/unstable/sql";
 import { expect, test } from "vitest";
 
@@ -44,7 +45,7 @@ const fakeApi = (queue: Array<typeof records>) =>
 	);
 
 const layer = (queue: Array<typeof records>) =>
-	Layer.mergeAll(Database, fakeApi(queue)).pipe(
+	Layer.mergeAll(Database, fakeApi(queue), FetchHttpClient.layer).pipe(
 		Layer.provide(
 			ConfigProvider.layer(
 				ConfigProvider.fromUnknown({
