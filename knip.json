@@ -1,5 +1,5 @@
 {
 	"$schema": "https://unpkg.com/knip@6/schema.json",
-	"entry": ["src/routes/**/*.{ts,tsx}", "src/**/*.test.ts", "scripts/*.ts"],
+	"entry": ["src/routes/**/*.{ts,tsx}", "src/**/*.test.ts", "scripts/*.ts", "src/server/boot.ts"],
 	"ignoreBinaries": ["op"]
 }
