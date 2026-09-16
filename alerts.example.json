@@ -1,0 +1,29 @@
+{
+	"rules": [
+		{
+			"id": "codex-weekly-low",
+			"kind": "remaining",
+			"scope": "provider:codex",
+			"window": "weekly",
+			"remainingBelow": 10,
+			"heartbeat": "https://uptime.betterstack.com/api/v1/heartbeat/<token>"
+		},
+		{
+			"id": "claude-5h-low",
+			"kind": "remaining",
+			"scope": "provider:claude",
+			"window": "5-hour",
+			"remainingBelow": 5
+		},
+		{
+			"id": "claude-weekly-low",
+			"kind": "remaining",
+			"scope": "provider:claude",
+			"window": "weekly",
+			"remainingBelow": 10
+		},
+		{ "id": "cooldown", "kind": "cooldown" },
+		{ "id": "refresh-failed", "kind": "unhealthy" },
+		{ "id": "collector-stalled", "kind": "stalled", "minutes": 15 }
+	]
+}

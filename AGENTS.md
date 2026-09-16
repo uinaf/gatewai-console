@@ -37,6 +37,16 @@ record: [#1](https://github.com/uinaf/gatewai-console/issues/1). Visual brief:
   optional, read-only) names keys, anything else is a 16-char fingerprint.
   `GATEWAI_COLLECT=false` turns the loops off. State and errors land in
   `collector_state` and surface on `/healthz`.
+- Alerts (`src/server/alerts/`): rules come from `GATEWAI_ALERTS_FILE`
+  (JSON, see `alerts.example.json`, mounted read-only, never edited in the UI).
+  Kinds: `remaining` (a window's remaining percent below a threshold, with a
+  5-point clear margin so jitter never refires), `cooldown`, `unhealthy`,
+  `stalled` (no pop for N minutes). Every snapshot pass evaluates all rules;
+  a crossing opens one row in `alert_incidents` and closes it on clear.
+  Delivery is a Better Stack heartbeat per rule: firing posts `<url>/fail`
+  with the detail, clearing posts `<url>`. Hosts hold heartbeat URLs only,
+  never the Uptime API token, matching zebroid-infra's policy; undelivered
+  transitions retry on the next pass.
 - Runtime image: distroless `nodejs24`, UID 1000, read-only root, only `/data`
   writable, port 8080, no shell. Runtime Node lags `.node-version` by a few
   patch releases; keep `node:sqlite` usage to APIs both have. A bind-mounted
@@ -70,6 +80,7 @@ Runtime environment: `GATEWAI_DB_PATH` (default `data/console.sqlite`) in
 [src/server/management/api.ts](src/server/management/api.ts);
 `GATEWAI_HOST_LABEL` (`t102`, `eu`) in [src/functions/pools.ts](src/functions/pools.ts);
 `GATEWAI_COLLECT`, `GATEWAI_CLIENTS_FILE` in [src/server/ledger/](src/server/ledger/);
+`GATEWAI_ALERTS_FILE` in [src/server/alerts/rules.ts](src/server/alerts/rules.ts);
 `PORT` and `HOST` by nitro. Container defaults are in the [Dockerfile](Dockerfile).
 
 ## Invariants
@@ -80,8 +91,8 @@ Runtime environment: `GATEWAI_DB_PATH` (default `data/console.sqlite`) in
 - The management key never lands in the repo, logs, client bundle, or test
   fixtures. Production reads it from a container secret file.
 - One console per proxy. Popping the usage queue consumes it.
-- Product routes follow the shared design canvas one screen per PR. Pools is
-  live at `/`, ledger at `/ledger`; alerts is an inert nav entry until it lands.
+- Product routes follow the shared design canvas one screen per PR: pools at
+  `/`, ledger at `/ledger`, alerts at `/alerts`.
 - Ledger pages read aggregates only (`src/server/ledger/queries.ts`); raw
   request rows never leave the server. Percentiles are computed in process
   from sorted latencies, which measured 86 ms for a 90-day breakdown over
@@ -115,6 +126,8 @@ pools; the key never appears in the payload or the log.
 | `src/routes/api/pools.ts` | Normalised credentials for the pools screen          |
 | `src/server/ledger/`      | Collector loops, store, queries, client key registry |
 | `src/routes/ledger.tsx`   | Ledger screen: range, breakdowns, quota history      |
+| `src/server/alerts/`      | Rules, evaluator with hysteresis, store, heartbeats  |
+| `src/routes/alerts.tsx`   | Alerts screen: firing, clear rules, incidents        |
 | `src/db/migrations.ts`    | Migration Effects: `meta`, then the ledger tables    |
 | `.github/workflows/`      | `verify` (PR, merge queue, call), `scan`, `release`  |
 

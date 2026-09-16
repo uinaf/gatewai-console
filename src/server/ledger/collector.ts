@@ -1,5 +1,8 @@
 import { Config, Duration, Effect, Layer, Schedule } from "effect";
+import { HttpClient } from "effect/unstable/http";
 import { SqlClient } from "effect/unstable/sql";
+
+import { runAlerts } from "#/server/alerts/run";
 
 import { ClientRegistry } from "#/server/ledger/clients";
 import {
@@ -64,6 +67,12 @@ export const snapshotOnce = Effect.gen(function* () {
 	}
 	yield* writeCollectorState({ last_snapshot_at: recordedAt });
 	yield* clearError("snapshot");
+	// Rules see every observation, not only changed snapshots: the stalled rule
+	// and hysteresis clears depend on time passing.
+	const alerts = yield* runAlerts(pools, recordedAt);
+	if (alerts.fired > 0 || alerts.cleared > 0) {
+		yield* Effect.logInfo("alerts", `fired ${alerts.fired}, cleared ${alerts.cleared}`);
+	}
 	return recorded;
 });
 
@@ -86,7 +95,7 @@ export const maintainOnce = Effect.gen(function* () {
 const loop = <A, E>(
 	stage: string,
 	every: Duration.Duration,
-	once: Effect.Effect<A, E, ManagementApi | SqlClient.SqlClient>,
+	once: Effect.Effect<A, E, ManagementApi | SqlClient.SqlClient | HttpClient.HttpClient>,
 ) =>
 	once.pipe(
 		// Defects too: a loop that dies stops popping and the proxy drops the records.
@@ -105,6 +114,7 @@ export const Collector = Layer.effectDiscard(
 			yield* Effect.logInfo("collector: disabled by GATEWAI_COLLECT");
 			return;
 		}
+		yield* writeCollectorState({ started_at: now() });
 		yield* loop("pop", POP_EVERY, popOnce);
 		yield* loop("snapshot", SNAPSHOT_EVERY, snapshotOnce);
 		yield* loop("maintain", MAINTAIN_EVERY, maintainOnce);
