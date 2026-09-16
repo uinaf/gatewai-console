@@ -36,8 +36,10 @@ try {
 const env: Record<string, string> = {};
 if (existsSync(".env.local")) {
 	for (const line of readFileSync(".env.local", "utf8").split("\n")) {
-		const match = /^([A-Z0-9_]+)=(.*)$/.exec(line);
-		if (match?.[1] && match[2] !== undefined) env[match[1]] = match[2];
+		// dotenv semantics for the subset nitro loads: optional `export`, surrounding quotes, comments.
+		const match = /^\s*(?:export\s+)?([A-Z0-9_]+)\s*=\s*(.*?)\s*$/.exec(line);
+		if (!match?.[1] || match[2] === undefined || line.trim().startsWith("#")) continue;
+		env[match[1]] = match[2].replace(/^(['"])(.*)\1$/, "$2");
 	}
 	const missing = ["GATEWAI_MANAGEMENT_URL", "GATEWAI_MANAGEMENT_KEY"].filter((key) => !env[key]);
 	report(
@@ -52,7 +54,15 @@ if (existsSync(".env.local")) {
 
 const url = env.GATEWAI_MANAGEMENT_URL;
 const key = env.GATEWAI_MANAGEMENT_KEY;
-if (url && key) {
+const host = (() => {
+	try {
+		return url ? new URL(url).host : "";
+	} catch {
+		return "";
+	}
+})();
+if (url && key && !host) report("fail", `GATEWAI_MANAGEMENT_URL is not a valid url`);
+if (url && key && host) {
 	try {
 		const response = await fetch(`${url}/latest-version`, {
 			headers: { authorization: `Bearer ${key}`, accept: "application/json" },
@@ -62,8 +72,8 @@ if (url && key) {
 		report(
 			response.ok ? "ok" : "fail",
 			response.ok
-				? `gateway ${new URL(url).host} answers (proxy ${body["latest-version"] ?? "unknown"})`
-				: `gateway ${new URL(url).host} returned ${response.status}; check the key against the proxy config`,
+				? `gateway ${host} answers (proxy ${body["latest-version"] ?? "unknown"})`
+				: `gateway ${host} returned ${response.status}; check the key against the proxy config`,
 		);
 	} catch (error) {
 		report(
