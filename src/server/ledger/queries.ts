@@ -27,10 +27,15 @@ export interface BreakdownRow {
 	readonly errorRate: number;
 	readonly tokens: number;
 	readonly previousTokens: number;
+	readonly tokensInput: number;
 	readonly cached: number;
+	readonly tokensCacheWrite: number;
+	readonly tokensOutput: number;
+	readonly tokensReasoning: number;
 	readonly p50: number | null;
 	readonly p95: number | null;
 	readonly ttftP50: number | null;
+	readonly ttftP95: number | null;
 	readonly share: ReadonlyArray<{
 		readonly model: string;
 		readonly provider: string;
@@ -92,20 +97,29 @@ export const summary = (range: Range, now: number = Date.now()) =>
 		} satisfies Summary;
 	});
 
+interface Totals {
+	readonly key: string;
+	readonly requests: number;
+	readonly failed: number;
+	readonly tokens: number;
+	readonly tokens_input: number;
+	readonly cached: number;
+	readonly tokens_cache_write: number;
+	readonly tokens_output: number;
+	readonly tokens_reasoning: number;
+}
+
 const rolledBreakdown = (by: Dimension, range: Range, labels: ReadonlyMap<string, string>) =>
 	Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;
 		const previous = previousRange(range);
 		const key = sql.literal(by === "credential" ? "auth_index" : column[by]);
-		const current = yield* sql<{
-			key: string;
-			requests: number;
-			failed: number;
-			tokens: number;
-			cached: number;
-		}>`
+		const current = yield* sql<Totals>`
 			SELECT ${key} AS key, sum(requests) AS requests, sum(failed) AS failed,
-				sum(tokens_input + tokens_cached + tokens_cache_write + tokens_output) AS tokens, sum(tokens_cached) AS cached
+				sum(tokens_input + tokens_cached + tokens_cache_write + tokens_output) AS tokens,
+				sum(tokens_input) AS tokens_input, sum(tokens_cached) AS cached,
+				sum(tokens_cache_write) AS tokens_cache_write, sum(tokens_output) AS tokens_output,
+				sum(tokens_reasoning) AS tokens_reasoning
 			FROM request_rollups WHERE hour >= ${range.from} AND hour < ${range.to}
 			GROUP BY ${key} ORDER BY requests DESC`;
 		const before = yield* sql<{ key: string; requests: number; tokens: number }>`
@@ -127,10 +141,15 @@ const rolledBreakdown = (by: Dimension, range: Range, labels: ReadonlyMap<string
 				errorRate: row.requests === 0 ? 0 : row.failed / row.requests,
 				tokens: row.tokens,
 				previousTokens: prev?.tokens ?? 0,
+				tokensInput: row.tokens_input,
 				cached: row.cached,
+				tokensCacheWrite: row.tokens_cache_write,
+				tokensOutput: row.tokens_output,
+				tokensReasoning: row.tokens_reasoning,
 				p50: null,
 				p95: null,
 				ttftP50: null,
+				ttftP95: null,
 				share: models
 					.filter((m) => m.key === row.key)
 					.map((m) => ({
@@ -153,15 +172,12 @@ export const breakdown = (
 		const sql = yield* SqlClient.SqlClient;
 		const previous = previousRange(range);
 		const key = sql.literal(column[by]);
-		const current = yield* sql<{
-			key: string;
-			requests: number;
-			failed: number;
-			tokens: number;
-			cached: number;
-		}>`SELECT ${key} AS key, count(*) AS requests, coalesce(sum(failed), 0) AS failed,
+		const current =
+			yield* sql<Totals>`SELECT ${key} AS key, count(*) AS requests, coalesce(sum(failed), 0) AS failed,
 				coalesce(sum(tokens_input + tokens_cached + tokens_cache_write + tokens_output), 0) AS tokens,
-				coalesce(sum(tokens_cached), 0) AS cached
+				coalesce(sum(tokens_input), 0) AS tokens_input, coalesce(sum(tokens_cached), 0) AS cached,
+				coalesce(sum(tokens_cache_write), 0) AS tokens_cache_write,
+				coalesce(sum(tokens_output), 0) AS tokens_output, coalesce(sum(tokens_reasoning), 0) AS tokens_reasoning
 			FROM requests WHERE timestamp >= ${range.from} AND timestamp < ${range.to}
 			GROUP BY ${key} ORDER BY requests DESC`;
 		const before = yield* sql<{ key: string; requests: number; tokens: number }>`
@@ -214,10 +230,15 @@ export const breakdown = (
 				errorRate: row.requests === 0 ? 0 : row.failed / row.requests,
 				tokens: row.tokens,
 				previousTokens: prev?.tokens ?? 0,
+				tokensInput: row.tokens_input,
 				cached: row.cached,
+				tokensCacheWrite: row.tokens_cache_write,
+				tokensOutput: row.tokens_output,
+				tokensReasoning: row.tokens_reasoning,
 				p50: percentile(bucket.latency, 0.5),
 				p95: percentile(bucket.latency, 0.95),
 				ttftP50: percentile(ttft, 0.5),
+				ttftP95: percentile(ttft, 0.95),
 				share,
 			};
 		});
@@ -270,6 +291,8 @@ export const quotaHistory = (credential: string, range: Range) =>
 			const quota = JSON.parse(row.quota) as StoredQuota;
 			for (const window of quota.windows) {
 				const previous = last.get(window.label);
+				// One point per observed change per window; a snapshot repeats unchanged windows.
+				if (previous === window.usedPercent) continue;
 				points.push({
 					at: row.observed_at,
 					label: window.label,

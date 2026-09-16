@@ -48,14 +48,22 @@ export function QuotaHistory({
 		points: points.filter((p) => p.label === label),
 	}));
 	const observations = [...new Set(points.map((p) => p.at))].sort();
-	const path = (own: ReadonlyArray<QuotaPoint>) =>
-		own
-			.map((p, i) => {
-				const px = x(p.at);
-				// A reset drops vertically: the old value ends and the new one starts at the same x.
-				return `${i === 0 ? "M" : p.reset ? "L" : "L"}${px.toFixed(1)},${y(p.usedPercent).toFixed(1)}`;
-			})
-			.join(" ");
+	// A reset drops vertically at its timestamp; the last known value extends to the range end.
+	const path = (own: ReadonlyArray<QuotaPoint>) => {
+		const parts: Array<string> = [];
+		let previous: number | null = null;
+		for (const p of own) {
+			const px = x(p.at).toFixed(1);
+			if (parts.length === 0) parts.push(`M${px},${y(p.usedPercent).toFixed(1)}`);
+			else {
+				if (p.reset && previous !== null) parts.push(`L${px},${y(previous).toFixed(1)}`);
+				parts.push(`L${px},${y(p.usedPercent).toFixed(1)}`);
+			}
+			previous = p.usedPercent;
+		}
+		if (previous !== null) parts.push(`L${WIDTH},${y(previous).toFixed(1)}`);
+		return parts.join(" ");
+	};
 	const resets = points.filter((p) => p.reset);
 	const spanDays = (to - from) / 86_400_000;
 	const ticks = Array.from({ length: 5 }, (_, i) =>

@@ -39,5 +39,5 @@ export const dayTick = (iso: string): string => {
 };
 export const hourTick = (iso: string): string => {
 	const date = new Date(iso);
-	return `${String(date.getUTCHours()).padStart(2, "0")}:00`;
+	return `${String(date.getUTCHours()).padStart(2, "0")}:${String(date.getUTCMinutes()).padStart(2, "0")}`;
 };

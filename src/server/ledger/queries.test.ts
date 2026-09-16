@@ -107,6 +107,13 @@ test("summary and breakdown aggregate the range and compare with the one before"
 	// Failed requests are excluded from latency; p50 of [100, 900] picks the lower middle.
 	expect(macbook?.p50).toBe(100);
 	expect(macbook?.p95).toBe(900);
+	expect(macbook?.ttftP95).toBe(200);
+	expect(macbook).toMatchObject({
+		tokensInput: 30,
+		tokensOutput: 15,
+		tokensReasoning: 0,
+		tokensCacheWrite: 0,
+	});
 	expect(macbook?.share.map((s) => [s.model, s.share])).toEqual([
 		["claude-fable-5-1", 2 / 3],
 		["gpt-6-astra", 1 / 3],
@@ -153,6 +160,21 @@ test("quota history marks drops as resets and includes the point before the rang
 		[0, true],
 		[20, false],
 	]);
+	// An unchanged window inside a changed snapshot emits nothing.
+	const repeated = await run(
+		Effect.gen(function* () {
+			yield* recordQuotaSnapshot(credential(40, "2026-09-15T06:00:00.000Z"), "x");
+			yield* recordQuotaSnapshot(
+				{
+					...credential(40, "2026-09-15T07:00:00.000Z"),
+					quota: { ...credential(40, "2026-09-15T07:00:00.000Z").quota, plan: "team" },
+				},
+				"x",
+			);
+			return yield* quotaHistory("codex-a", range);
+		}),
+	);
+	expect(repeated).toHaveLength(1);
 });
 
 test("breakdown stays under budget on 90 days of gateway-scale rows", async () => {
