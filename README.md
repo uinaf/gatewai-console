@@ -1,3 +1,5 @@
+![gatewai-console — operator console for CLIProxyAPI gateways.](docs/assets/readme-banner.png)
+
 # uinaf/gatewai-console
 
 Operator console for a self-hosted [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI)
