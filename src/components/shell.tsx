@@ -32,7 +32,7 @@ export interface ShellProps {
 
 const SECTIONS = [
 	{ to: "/", label: "pools", live: true },
-	{ to: "/ledger", label: "ledger", live: false },
+	{ to: "/ledger", label: "ledger", live: true },
 	{ to: "/alerts", label: "alerts", live: false },
 ] as const;
 

@@ -1,0 +1,212 @@
+import { Effect } from "effect";
+import { SqlClient } from "effect/unstable/sql";
+
+// Read side of the ledger. Everything here returns aggregates; raw rows never
+// leave the server. Percentiles are computed in process from sorted latencies,
+// which at gateway scale (thousands of rows a day) stays well under budget.
+
+export type Dimension = "client" | "model" | "provider" | "credential";
+
+export interface Range {
+	readonly from: string;
+	readonly to: string;
+}
+
+export interface Summary {
+	readonly requests: number;
+	readonly failed: number;
+	readonly tokens: number;
+	readonly cached: number;
+}
+
+export interface BreakdownRow {
+	readonly key: string;
+	readonly label: string;
+	readonly requests: number;
+	readonly previousRequests: number;
+	readonly errorRate: number;
+	readonly tokens: number;
+	readonly previousTokens: number;
+	readonly cached: number;
+	readonly p50: number | null;
+	readonly p95: number | null;
+	readonly ttftP50: number | null;
+	readonly share: ReadonlyArray<{
+		readonly model: string;
+		readonly provider: string;
+		readonly share: number;
+	}>;
+}
+
+export interface QuotaPoint {
+	readonly at: string;
+	readonly label: string;
+	readonly usedPercent: number;
+	/** True when this point dropped from the previous one: the window reset. */
+	readonly reset: boolean;
+}
+
+const column: Record<Dimension, string> = {
+	client: "client_hash",
+	model: "model",
+	provider: "provider",
+	credential: "coalesce(auth_index, '')",
+};
+
+const percentile = (sorted: ReadonlyArray<number>, p: number): number | null => {
+	if (sorted.length === 0) return null;
+	const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil(p * sorted.length) - 1));
+	return sorted[index] ?? null;
+};
+
+export const previousRange = (range: Range): Range => {
+	const span = Date.parse(range.to) - Date.parse(range.from);
+	return { from: new Date(Date.parse(range.from) - span).toISOString(), to: range.from };
+};
+
+export const summary = (range: Range) =>
+	Effect.gen(function* () {
+		const sql = yield* SqlClient.SqlClient;
+		const [row] = yield* sql<{ requests: number; failed: number; tokens: number; cached: number }>`
+			SELECT count(*) AS requests, coalesce(sum(failed), 0) AS failed,
+				coalesce(sum(tokens_input + tokens_cached + tokens_cache_write + tokens_output), 0) AS tokens,
+				coalesce(sum(tokens_cached), 0) AS cached
+			FROM requests WHERE timestamp >= ${range.from} AND timestamp < ${range.to}`;
+		return {
+			requests: row?.requests ?? 0,
+			failed: row?.failed ?? 0,
+			tokens: row?.tokens ?? 0,
+			cached: row?.cached ?? 0,
+		} satisfies Summary;
+	});
+
+export const breakdown = (by: Dimension, range: Range, labels: ReadonlyMap<string, string>) =>
+	Effect.gen(function* () {
+		const sql = yield* SqlClient.SqlClient;
+		const previous = previousRange(range);
+		const key = sql.literal(column[by]);
+		const current = yield* sql<{
+			key: string;
+			requests: number;
+			failed: number;
+			tokens: number;
+			cached: number;
+		}>`SELECT ${key} AS key, count(*) AS requests, coalesce(sum(failed), 0) AS failed,
+				coalesce(sum(tokens_input + tokens_cached + tokens_cache_write + tokens_output), 0) AS tokens,
+				coalesce(sum(tokens_cached), 0) AS cached
+			FROM requests WHERE timestamp >= ${range.from} AND timestamp < ${range.to}
+			GROUP BY ${key} ORDER BY requests DESC`;
+		const before = yield* sql<{ key: string; requests: number; tokens: number }>`
+			SELECT ${key} AS key, count(*) AS requests,
+				coalesce(sum(tokens_input + tokens_cached + tokens_cache_write + tokens_output), 0) AS tokens
+			FROM requests WHERE timestamp >= ${previous.from} AND timestamp < ${previous.to}
+			GROUP BY ${key}`;
+		const latencies = yield* sql<{
+			key: string;
+			latency_ms: number | null;
+			ttft_ms: number | null;
+		}>`
+			SELECT ${key} AS key, latency_ms, ttft_ms FROM requests
+			WHERE timestamp >= ${range.from} AND timestamp < ${range.to} AND failed = 0
+			ORDER BY ${key}, latency_ms`;
+		const models = yield* sql<{ key: string; model: string; provider: string; requests: number }>`
+			SELECT ${key} AS key, model, provider, count(*) AS requests FROM requests
+			WHERE timestamp >= ${range.from} AND timestamp < ${range.to}
+			GROUP BY ${key}, model, provider ORDER BY requests DESC`;
+
+		const beforeByKey = new Map(before.map((row) => [row.key, row]));
+		const latencyByKey = new Map<string, { latency: Array<number>; ttft: Array<number> }>();
+		for (const row of latencies) {
+			const bucket = latencyByKey.get(row.key) ?? { latency: [], ttft: [] };
+			if (row.latency_ms !== null) bucket.latency.push(row.latency_ms);
+			if (row.ttft_ms !== null) bucket.ttft.push(row.ttft_ms);
+			latencyByKey.set(row.key, bucket);
+		}
+		const modelsByKey = new Map<
+			string,
+			Array<{ model: string; provider: string; requests: number }>
+		>();
+		for (const row of models) modelsByKey.set(row.key, [...(modelsByKey.get(row.key) ?? []), row]);
+
+		return current.map((row): BreakdownRow => {
+			const prev = beforeByKey.get(row.key);
+			const bucket = latencyByKey.get(row.key) ?? { latency: [], ttft: [] };
+			const ttft = [...bucket.ttft].sort((a, b) => a - b);
+			const share = (modelsByKey.get(row.key) ?? []).map((m) => ({
+				model: m.model,
+				provider: m.provider,
+				share: row.requests === 0 ? 0 : m.requests / row.requests,
+			}));
+			return {
+				key: row.key,
+				label:
+					labels.get(row.key) ?? (by === "client" ? row.key.slice(0, 16) : row.key || "unknown"),
+				requests: row.requests,
+				previousRequests: prev?.requests ?? 0,
+				errorRate: row.requests === 0 ? 0 : row.failed / row.requests,
+				tokens: row.tokens,
+				previousTokens: prev?.tokens ?? 0,
+				cached: row.cached,
+				p50: percentile(bucket.latency, 0.5),
+				p95: percentile(bucket.latency, 0.95),
+				ttftP50: percentile(ttft, 0.5),
+				share,
+			};
+		});
+	});
+
+/** Labels for the client dimension: registry label, else the stored label, else nothing (fingerprint). */
+export const clientLabels = Effect.gen(function* () {
+	const sql = yield* SqlClient.SqlClient;
+	const rows = yield* sql<{
+		hash: string;
+		label: string | null;
+	}>`SELECT hash, label FROM client_keys`;
+	return new Map(rows.flatMap((row) => (row.label ? [[row.hash, row.label] as const] : [])));
+});
+
+/** Labels for the credential dimension: auth_index → credential label, via what auth-files reported. */
+export const credentialLabels = Effect.gen(function* () {
+	const sql = yield* SqlClient.SqlClient;
+	const rows = yield* sql<{ name: string; label: string }>`SELECT name, label FROM credentials`;
+	return new Map(rows.map((row) => [row.name, row.label] as const));
+});
+
+export const credentialNames = Effect.gen(function* () {
+	const sql = yield* SqlClient.SqlClient;
+	const rows = yield* sql<{ name: string; label: string; provider: string }>`
+		SELECT name, label, provider FROM credentials ORDER BY provider, label`;
+	return rows;
+});
+
+interface StoredQuota {
+	readonly windows: ReadonlyArray<{ label: string; usedPercent: number }>;
+}
+
+export const quotaHistory = (credential: string, range: Range) =>
+	Effect.gen(function* () {
+		const sql = yield* SqlClient.SqlClient;
+		// One point before the range so the first segment has a start.
+		const rows = yield* sql<{ observed_at: string; quota: string }>`
+			SELECT observed_at, quota FROM quota_snapshots
+			WHERE credential = ${credential} AND observed_at < ${range.to}
+				AND id >= coalesce((SELECT max(id) FROM quota_snapshots
+					WHERE credential = ${credential} AND observed_at < ${range.from}), 0)
+			ORDER BY id`;
+		const last = new Map<string, number>();
+		const points: Array<QuotaPoint> = [];
+		for (const row of rows) {
+			const quota = JSON.parse(row.quota) as StoredQuota;
+			for (const window of quota.windows) {
+				const previous = last.get(window.label);
+				points.push({
+					at: row.observed_at,
+					label: window.label,
+					usedPercent: window.usedPercent,
+					reset: previous !== undefined && window.usedPercent < previous,
+				});
+				last.set(window.label, window.usedPercent);
+			}
+		}
+		return points;
+	});

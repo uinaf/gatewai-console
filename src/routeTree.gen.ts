@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as HealthzRouteImport } from './routes/healthz'
+import { Route as LedgerRouteImport } from './routes/ledger'
 import { Route as ApiPoolsRouteImport } from './routes/api/pools'
 
 const IndexRoute = IndexRouteImport.update({
@@ -23,6 +24,11 @@ const HealthzRoute = HealthzRouteImport.update({
   path: '/healthz',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LedgerRoute = LedgerRouteImport.update({
+  id: '/ledger',
+  path: '/ledger',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPoolsRoute = ApiPoolsRouteImport.update({
   id: '/api/pools',
   path: '/api/pools',
@@ -32,30 +38,34 @@ const ApiPoolsRoute = ApiPoolsRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/healthz': typeof HealthzRoute
+  '/ledger': typeof LedgerRoute
   '/api/pools': typeof ApiPoolsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/healthz': typeof HealthzRoute
+  '/ledger': typeof LedgerRoute
   '/api/pools': typeof ApiPoolsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/healthz': typeof HealthzRoute
+  '/ledger': typeof LedgerRoute
   '/api/pools': typeof ApiPoolsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/healthz' | '/api/pools'
+  fullPaths: '/' | '/healthz' | '/ledger' | '/api/pools'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/healthz' | '/api/pools'
-  id: '__root__' | '/' | '/healthz' | '/api/pools'
+  to: '/' | '/healthz' | '/ledger' | '/api/pools'
+  id: '__root__' | '/' | '/healthz' | '/ledger' | '/api/pools'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   HealthzRoute: typeof HealthzRoute
+  LedgerRoute: typeof LedgerRoute
   ApiPoolsRoute: typeof ApiPoolsRoute
 }
 
@@ -75,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HealthzRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ledger': {
+      id: '/ledger'
+      path: '/ledger'
+      fullPath: '/ledger'
+      preLoaderRoute: typeof LedgerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/pools': {
       id: '/api/pools'
       path: '/api/pools'
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   HealthzRoute: HealthzRoute,
+  LedgerRoute: LedgerRoute,
   ApiPoolsRoute: ApiPoolsRoute,
 }
 export const routeTree = rootRouteImport
