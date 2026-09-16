@@ -71,6 +71,7 @@ function LedgerPage() {
 			</div>
 			{preset === "custom" ? (
 				<form
+					key={`${search.from ?? ""}-${search.to ?? ""}`}
 					className="ledger-custom"
 					onSubmit={(event) => {
 						event.preventDefault();

@@ -53,6 +53,12 @@ const column: Record<Dimension, string> = {
 	credential: "coalesce(auth_index, '')",
 };
 
+// Raw rows live 90 days; older ranges read the hourly rollups, which carry the
+// same sums but no per-request latencies, so percentiles come back null there.
+const RAW_RETENTION_MS = 90 * 86_400_000;
+const usesRollups = (range: Range, now: number = Date.now()): boolean =>
+	Date.parse(range.from) < now - RAW_RETENTION_MS;
+
 const percentile = (sorted: ReadonlyArray<number>, p: number): number | null => {
 	if (sorted.length === 0) return null;
 	const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil(p * sorted.length) - 1));
@@ -64,10 +70,16 @@ export const previousRange = (range: Range): Range => {
 	return { from: new Date(Date.parse(range.from) - span).toISOString(), to: range.from };
 };
 
-export const summary = (range: Range) =>
+export const summary = (range: Range, now: number = Date.now()) =>
 	Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;
-		const [row] = yield* sql<{ requests: number; failed: number; tokens: number; cached: number }>`
+		const [row] = usesRollups(range, now)
+			? yield* sql<{ requests: number; failed: number; tokens: number; cached: number }>`
+			SELECT coalesce(sum(requests), 0) AS requests, coalesce(sum(failed), 0) AS failed,
+				coalesce(sum(tokens_input + tokens_cached + tokens_cache_write + tokens_output), 0) AS tokens,
+				coalesce(sum(tokens_cached), 0) AS cached
+			FROM request_rollups WHERE hour >= ${range.from} AND hour < ${range.to}`
+			: yield* sql<{ requests: number; failed: number; tokens: number; cached: number }>`
 			SELECT count(*) AS requests, coalesce(sum(failed), 0) AS failed,
 				coalesce(sum(tokens_input + tokens_cached + tokens_cache_write + tokens_output), 0) AS tokens,
 				coalesce(sum(tokens_cached), 0) AS cached
@@ -80,8 +92,64 @@ export const summary = (range: Range) =>
 		} satisfies Summary;
 	});
 
-export const breakdown = (by: Dimension, range: Range, labels: ReadonlyMap<string, string>) =>
+const rolledBreakdown = (by: Dimension, range: Range, labels: ReadonlyMap<string, string>) =>
 	Effect.gen(function* () {
+		const sql = yield* SqlClient.SqlClient;
+		const previous = previousRange(range);
+		const key = sql.literal(by === "credential" ? "auth_index" : column[by]);
+		const current = yield* sql<{
+			key: string;
+			requests: number;
+			failed: number;
+			tokens: number;
+			cached: number;
+		}>`
+			SELECT ${key} AS key, sum(requests) AS requests, sum(failed) AS failed,
+				sum(tokens_input + tokens_cached + tokens_cache_write + tokens_output) AS tokens, sum(tokens_cached) AS cached
+			FROM request_rollups WHERE hour >= ${range.from} AND hour < ${range.to}
+			GROUP BY ${key} ORDER BY requests DESC`;
+		const before = yield* sql<{ key: string; requests: number; tokens: number }>`
+			SELECT ${key} AS key, sum(requests) AS requests,
+				sum(tokens_input + tokens_cached + tokens_cache_write + tokens_output) AS tokens
+			FROM request_rollups WHERE hour >= ${previous.from} AND hour < ${previous.to} GROUP BY ${key}`;
+		const models = yield* sql<{ key: string; model: string; provider: string; requests: number }>`
+			SELECT ${key} AS key, model, provider, sum(requests) AS requests FROM request_rollups
+			WHERE hour >= ${range.from} AND hour < ${range.to} GROUP BY ${key}, model, provider ORDER BY requests DESC`;
+		const beforeByKey = new Map(before.map((row) => [row.key, row]));
+		return current.map((row): BreakdownRow => {
+			const prev = beforeByKey.get(row.key);
+			return {
+				key: row.key,
+				label:
+					labels.get(row.key) ?? (by === "client" ? row.key.slice(0, 16) : row.key || "unknown"),
+				requests: row.requests,
+				previousRequests: prev?.requests ?? 0,
+				errorRate: row.requests === 0 ? 0 : row.failed / row.requests,
+				tokens: row.tokens,
+				previousTokens: prev?.tokens ?? 0,
+				cached: row.cached,
+				p50: null,
+				p95: null,
+				ttftP50: null,
+				share: models
+					.filter((m) => m.key === row.key)
+					.map((m) => ({
+						model: m.model,
+						provider: m.provider,
+						share: row.requests === 0 ? 0 : m.requests / row.requests,
+					})),
+			};
+		});
+	});
+
+export const breakdown = (
+	by: Dimension,
+	range: Range,
+	labels: ReadonlyMap<string, string>,
+	now: number = Date.now(),
+) =>
+	Effect.gen(function* () {
+		if (usesRollups(range, now)) return yield* rolledBreakdown(by, range, labels);
 		const sql = yield* SqlClient.SqlClient;
 		const previous = previousRange(range);
 		const key = sql.literal(column[by]);

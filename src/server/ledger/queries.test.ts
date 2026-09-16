@@ -16,8 +16,10 @@ import {
 } from "#/server/ledger/queries";
 import {
 	insertRequests,
+	pruneRequests,
 	recordQuotaSnapshot,
 	type RequestRow,
+	rollupSince,
 	upsertCredentials,
 } from "#/server/ledger/store";
 import type { Credential } from "#/server/management/credential";
@@ -217,4 +219,32 @@ test("the credential dimension labels rows by auth_index", async () => {
 		}),
 	);
 	expect(rows[0]).toMatchObject({ key: "cred-a", label: "a@example.com" });
+});
+
+test("ranges older than raw retention read the rollups, without percentiles", async () => {
+	const old = { from: "2026-05-01T00:00:00.000Z", to: "2026-05-02T00:00:00.000Z" };
+	const now = Date.parse("2026-09-16T00:00:00.000Z");
+	const result = await run(
+		Effect.gen(function* () {
+			yield* insertRequests(
+				[
+					row({ request_id: "o1", timestamp: "2026-05-01T01:00:00.000Z" }),
+					row({ request_id: "o2", timestamp: "2026-05-01T01:30:00.000Z", failed: 1 }),
+				],
+				new Map(),
+			);
+			yield* rollupSince("2026-05-01T00:00:00.000Z");
+			yield* pruneRequests(new Date(now).toISOString());
+			const total = yield* summary(old, now);
+			const rows = yield* breakdown("model", old, new Map(), now);
+			return { total, rows };
+		}),
+	);
+	expect(result.total).toMatchObject({ requests: 2, failed: 1 });
+	expect(result.rows[0]).toMatchObject({
+		key: "claude-fable-5-1",
+		requests: 2,
+		p50: null,
+		p95: null,
+	});
 });

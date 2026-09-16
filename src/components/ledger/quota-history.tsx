@@ -9,10 +9,14 @@ import type { QuotaPoint, Range } from "#/server/ledger/queries";
 
 const WIDTH = 1000;
 const HEIGHT = 200;
-const SERIES = ["weekly", "5-hour"] as const;
+// Every window the normaliser reported gets a line: the two standard ones keep
+// their fixed hue and dash, named model families follow in a fixed order with
+// their own hue and dash so identity never rests on colour alone.
+const DASHES = [undefined, "4 3", "1 3", "6 2 1 2", "2 2"];
 
 interface Series {
 	readonly label: string;
+	readonly index: number;
 	readonly dash: string | undefined;
 	readonly points: ReadonlyArray<QuotaPoint>;
 }
@@ -33,12 +37,16 @@ export function QuotaHistory({
 		Math.max(0, Math.min(WIDTH, ((Date.parse(iso) - from) / (to - from)) * WIDTH));
 	const y = (used: number) => HEIGHT - (used / 100) * HEIGHT;
 
-	const series: Array<Series> = SERIES.flatMap((label) => {
-		const own = points.filter((p) => p.label === label);
-		return own.length > 0
-			? [{ label, dash: label === "5-hour" ? "4 3" : undefined, points: own }]
-			: [];
+	const labels = [...new Set(points.map((p) => p.label))].sort((a, b) => {
+		const rank = (l: string) => (l === "weekly" ? 0 : l === "5-hour" ? 1 : 2);
+		return rank(a) - rank(b) || a.localeCompare(b);
 	});
+	const series: Array<Series> = labels.map((label, index) => ({
+		label,
+		index: Math.min(index, DASHES.length - 1),
+		dash: DASHES[Math.min(index, DASHES.length - 1)],
+		points: points.filter((p) => p.label === label),
+	}));
 	const observations = [...new Set(points.map((p) => p.at))].sort();
 	const path = (own: ReadonlyArray<QuotaPoint>) =>
 		own
@@ -74,7 +82,7 @@ export function QuotaHistory({
 	const readout = hovered
 		? series.map((s) => {
 				const latest = s.points.filter((p) => p.at <= hovered).at(-1);
-				return { label: s.label, dash: s.dash, value: latest?.usedPercent ?? null };
+				return { label: s.label, index: s.index, dash: s.dash, value: latest?.usedPercent ?? null };
 			})
 		: [];
 
@@ -118,7 +126,7 @@ export function QuotaHistory({
 							<path
 								key={s.label}
 								className="line"
-								data-window={s.label}
+								data-series={s.index}
 								strokeDasharray={s.dash}
 								d={path(s.points)}
 							/>
@@ -137,6 +145,12 @@ export function QuotaHistory({
 							<span className="u-meta">{hovered.slice(0, 16).replace("T", " ")}z</span>
 							{readout.map((r) => (
 								<span key={r.label}>
+									<span
+										className="key"
+										data-series={r.index}
+										data-dashed={r.dash ? "" : undefined}
+										aria-hidden="true"
+									/>
 									<strong>{r.value === null ? "—" : `${r.value}%`}</strong> {r.label}
 								</span>
 							))}
@@ -149,7 +163,7 @@ export function QuotaHistory({
 					<span key={s.label}>
 						<span
 							className="key"
-							data-window={s.label}
+							data-series={s.index}
 							data-dashed={s.dash ? "" : undefined}
 							aria-hidden="true"
 						/>

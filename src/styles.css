@@ -437,11 +437,20 @@ body {
 	border-bottom: 1px solid var(--border);
 	touch-action: none;
 }
-.history-chart .line[data-window="weekly"] {
+.history-chart .line[data-series="0"] {
 	stroke: var(--viz-1);
 }
-.history-chart .line[data-window="5-hour"] {
+.history-chart .line[data-series="1"] {
 	stroke: var(--viz-2);
+}
+.history-chart .line[data-series="2"] {
+	stroke: var(--viz-3);
+}
+.history-chart .line[data-series="3"] {
+	stroke: var(--viz-4);
+}
+.history-chart .line[data-series="4"] {
+	stroke: var(--viz-5);
 }
 .key {
 	display: inline-block;
@@ -450,8 +459,17 @@ body {
 	vertical-align: 2px;
 	border-top: 2px solid var(--viz-1);
 }
-.key[data-window="5-hour"] {
+.key[data-series="1"] {
 	border-top-color: var(--viz-2);
+}
+.key[data-series="2"] {
+	border-top-color: var(--viz-3);
+}
+.key[data-series="3"] {
+	border-top-color: var(--viz-4);
+}
+.key[data-series="4"] {
+	border-top-color: var(--viz-5);
 }
 .key[data-dashed] {
 	border-top-style: dashed;
