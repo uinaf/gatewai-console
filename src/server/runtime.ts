@@ -4,7 +4,7 @@ import { Database } from "#/server/database";
 
 const appMemoMap = Layer.makeMemoMapUnsafe();
 
-export const runtime = ManagedRuntime.make(Database.layer, { memoMap: appMemoMap });
+export const runtime = ManagedRuntime.make(Database, { memoMap: appMemoMap });
 
 const shutdown = () => {
 	void runtime.dispose();
