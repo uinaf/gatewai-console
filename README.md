@@ -24,12 +24,13 @@ Production build and container:
 ```bash
 vp run build && GATEWAI_DB_PATH=/tmp/console.sqlite node .output/server/index.mjs
 docker build -t gatewai-console:local .
-docker run --rm --read-only --tmpfs /tmp -v "$(mktemp -d):/data" -p 8080:8080 gatewai-console:local
+docker run --rm --read-only --tmpfs /tmp -v gatewai-console-data:/data -p 8080:8080 gatewai-console:local
 curl localhost:8080/healthz     # {"ok":true,"version":"0.1.0","uptimeSeconds":1,"db":"reachable"}
 ```
 
-The container runs as UID 1000 with a read-only root; `/data` must be writable
-by that UID.
+The container runs as UID 1000 with a read-only root. A bind-mounted `/data`
+must be owned by UID 1000 on the host; `/healthz` answers 503 with
+`"db":"unreachable"` when it is not.
 
 ## Deploy
 

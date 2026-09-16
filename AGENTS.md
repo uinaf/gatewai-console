@@ -19,26 +19,30 @@ record: [#1](https://github.com/uinaf/gatewai-console/issues/1). Visual brief:
   `drizzle-orm/sqlite-proxy`; Drizzle ships no native `node:sqlite` driver yet.
   Chosen over `better-sqlite3` because Node 24 has the module unflagged, the
   image needs no native build, and the distroless runtime has no toolchain.
-  WAL, `busy_timeout`, and `foreign_keys` are set on open. Migrations live in
-  `drizzle/` and run at layer build from `GATEWAI_MIGRATIONS_DIR`.
+  Pragmas are set on open; migrations in `drizzle/` run when the `Database`
+  layer builds, so a fresh volume is migrated on first boot.
 - Runtime image: distroless `nodejs24`, UID 1000, read-only root, only `/data`
   writable, port 8080, no shell. Runtime Node lags `.node-version` by a few
-  patch releases; keep `node:sqlite` usage to APIs both have.
+  patch releases; keep `node:sqlite` usage to APIs both have. A bind-mounted
+  `/data` must be owned by UID 1000 on the host; a named volume inherits it.
 
 ## Commands
 
+`vp` is `node_modules/.bin/vp`; use `pnpm exec vp` or `pnpm run` when it is not
+on PATH. Scripts are in [package.json](package.json).
+
 ```bash
 pnpm install --frozen-lockfile
-vp dev                      # http://localhost:3000
-vp check                    # oxfmt + oxlint + typecheck
-vp run verify               # audit + routes + check + design-check + test + knip + build
-vp run db:generate          # drizzle-kit migration from src/db/schema.ts
-node .output/server/index.mjs   # run the production build
-docker build -t gatewai-console:local .
+vp dev                        # http://localhost:3000
+vp check                      # oxfmt + oxlint + typecheck
+vp run verify                 # the CI gate; see package.json#scripts.verify
+vp run db:generate            # drizzle-kit migration from src/db/schema.ts
+node .output/server/index.mjs # the production build after vp run build
 ```
 
-Environment: `PORT`, `HOST`, `GATEWAI_DB_PATH` (default `/data/console.sqlite`),
-`GATEWAI_MIGRATIONS_DIR` (default `./drizzle`).
+Runtime environment is read in [src/server/database.ts](src/server/database.ts)
+(`GATEWAI_DB_PATH`, `GATEWAI_MIGRATIONS_DIR`) and by nitro (`PORT`, `HOST`);
+container defaults are in the [Dockerfile](Dockerfile).
 
 ## Invariants
 
