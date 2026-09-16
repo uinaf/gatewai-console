@@ -1,0 +1,29 @@
+{
+	"version": 1,
+	"skills": {
+		"effect-ts": {
+			"source": "Effect-TS/skills",
+			"sourceType": "github",
+			"skillPath": "skills/effect-ts/SKILL.md",
+			"computedHash": "6bdb9b95aa83071eca2f67ae947b7d398a22e9e6e08f6cfa35de9516b03efa6e"
+		},
+		"react-ban-use-effect": {
+			"source": "uinaf/agent-skills",
+			"sourceType": "github",
+			"skillPath": "skills/react-ban-use-effect/SKILL.md",
+			"computedHash": "f8822f6513d833ec6b936ba344984ce8aab0fe8150a11792b9e6076228598f8f"
+		},
+		"react-doctor": {
+			"source": "millionco/react-doctor",
+			"sourceType": "github",
+			"skillPath": "skills/react-doctor/SKILL.md",
+			"computedHash": "2a003f397a4a94fc032019bc7fd97e938b4e2fae995c96df8603790db168dcc7"
+		},
+		"tanstack-start": {
+			"source": "tanstack-skills/tanstack-skills",
+			"sourceType": "github",
+			"skillPath": "plugins/tanstack-start/skills/tanstack-start/SKILL.md",
+			"computedHash": "e9d8355fe3e47b118e739081f1123c52aa0ecde57da840722177e1ad5caf9908"
+		}
+	}
+}

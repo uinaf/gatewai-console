@@ -57,24 +57,24 @@ are real, values are illustrative.
 
 ```json
 {
-  "name": "codex-two@example.com",
-  "provider": "codex",
-  "account_type": "pro",
-  "status": "active",
-  "status_message": "",
-  "disabled": false,
-  "unavailable": false,
-  "cooldowns": [],
-  "success": 350,
-  "failed": 1,
-  "last_refresh": "2026-09-16T10:02:11Z",
-  "recent_requests": [
-    { "time": "15:20-15:30", "success": 2, "failed": 0 },
-    { "time": "15:50-16:00", "success": 25, "failed": 0 }
-  ],
-  "quota": { "observed_at": "2026-09-16T10:31:04Z", "signals": { "...": "..." } },
-  "model_quotas": { "gpt-5.6-luna": { "observed_at": "...", "signals": { "...": "..." } } },
-  "attributes": { "websockets": "true", "priority": "0" }
+	"name": "codex-two@example.com",
+	"provider": "codex",
+	"account_type": "pro",
+	"status": "active",
+	"status_message": "",
+	"disabled": false,
+	"unavailable": false,
+	"cooldowns": [],
+	"success": 350,
+	"failed": 1,
+	"last_refresh": "2026-09-16T10:02:11Z",
+	"recent_requests": [
+		{ "time": "15:20-15:30", "success": 2, "failed": 0 },
+		{ "time": "15:50-16:00", "success": 25, "failed": 0 }
+	],
+	"quota": { "observed_at": "2026-09-16T10:31:04Z", "signals": { "...": "..." } },
+	"model_quotas": { "gpt-5.6-luna": { "observed_at": "...", "signals": { "...": "..." } } },
+	"attributes": { "websockets": "true", "priority": "0" }
 }
 ```
 
@@ -89,22 +89,27 @@ windows so the UI never parses headers:
 
 ```json
 {
-  "windows": [
-    { "label": "5-hour", "usedPercent": 38, "resetsAt": "2026-09-16T13:30:00Z", "status": "allowed" },
-    { "label": "Weekly", "usedPercent": 9, "resetsAt": "2026-09-22T03:00:00Z", "status": "allowed" }
-  ],
-  "credits": { "balance": 712.25, "unlimited": false },
-  "plan": "pro"
+	"windows": [
+		{
+			"label": "5-hour",
+			"usedPercent": 38,
+			"resetsAt": "2026-09-16T13:30:00Z",
+			"status": "allowed"
+		},
+		{ "label": "Weekly", "usedPercent": 9, "resetsAt": "2026-09-22T03:00:00Z", "status": "allowed" }
+	],
+	"credits": { "balance": 712.25, "unlimited": false },
+	"plan": "pro"
 }
 ```
 
 Provider differences the design must show honestly:
 
-| Provider | Windows | Extras |
-|---|---|---|
-| Claude (Max) | `5-hour`, `Weekly`, `Weekly Fable` (model-specific) | overage status (`rejected` here) |
-| Codex (Pro) | `Weekly` primary, sometimes a `5-hour` secondary, per-model `Additional` families like `GPT-5.3-Codex-Spark` | credits balance, plan type |
-| xAI (SuperGrok Heavy) | **none**. The provider sends no quota headers | request counts and status only |
+| Provider              | Windows                                                                                                      | Extras                           |
+| --------------------- | ------------------------------------------------------------------------------------------------------------ | -------------------------------- |
+| Claude (Max)          | `5-hour`, `Weekly`, `Weekly Fable` (model-specific)                                                          | overage status (`rejected` here) |
+| Codex (Pro)           | `Weekly` primary, sometimes a `5-hour` secondary, per-model `Additional` families like `GPT-5.3-Codex-Spark` | credits balance, plan type       |
+| xAI (SuperGrok Heavy) | **none**. The provider sends no quota headers                                                                | request counts and status only   |
 
 An exhausted window looks like `usedPercent: 100`, `status: "limited"`, with
 `cooldowns[0].until` two days out. Design that state; it is the one I open the
@@ -117,22 +122,22 @@ aggregates only; the browser never gets raw rows.
 
 ```json
 {
-  "request_id": "req_01J...",
-  "timestamp": "2026-09-16T10:31:04Z",
-  "api_key": "sha256:9f3c…",
-  "client": "macbook",
-  "provider": "codex",
-  "model": "gpt-6-astra",
-  "auth_index": "codex-two@example.com",
-  "stream": true,
-  "failed": false,
-  "latency_ms": 8420,
-  "ttft_ms": 610,
-  "tokens": 15234,
-  "token_breakdown": { "input": 12000, "cached": 9800, "output": 3100, "reasoning": 134 },
-  "reasoning_effort": "medium",
-  "service_tier": "default",
-  "user_agent": "codex_cli_rs/0.153.4"
+	"request_id": "req_01J...",
+	"timestamp": "2026-09-16T10:31:04Z",
+	"api_key": "sha256:9f3c…",
+	"client": "macbook",
+	"provider": "codex",
+	"model": "gpt-6-astra",
+	"auth_index": "codex-two@example.com",
+	"stream": true,
+	"failed": false,
+	"latency_ms": 8420,
+	"ttft_ms": 610,
+	"tokens": 15234,
+	"token_breakdown": { "input": 12000, "cached": 9800, "output": 3100, "reasoning": 134 },
+	"reasoning_effort": "medium",
+	"service_tier": "default",
+	"user_agent": "codex_cli_rs/0.153.4"
 }
 ```
 
@@ -144,13 +149,16 @@ per credential, for a time range and its previous range:
 
 ```json
 {
-  "requests": 1834,
-  "errorRate": 0.012,
-  "tokens": { "input": 12.1e6, "cached": 9.4e6, "output": 2.2e6, "reasoning": 0.3e6 },
-  "latency": { "p50": 6100, "p95": 21400 },
-  "ttft": { "p50": 540, "p95": 1900 },
-  "models": [{ "model": "gpt-6-astra", "share": 0.71 }, { "model": "claude-fable-5-1", "share": 0.29 }],
-  "delta": { "requests": 0.18, "tokens": -0.05 }
+	"requests": 1834,
+	"errorRate": 0.012,
+	"tokens": { "input": 12.1e6, "cached": 9.4e6, "output": 2.2e6, "reasoning": 0.3e6 },
+	"latency": { "p50": 6100, "p95": 21400 },
+	"ttft": { "p50": 540, "p95": 1900 },
+	"models": [
+		{ "model": "gpt-6-astra", "share": 0.71 },
+		{ "model": "claude-fable-5-1", "share": 0.29 }
+	],
+	"delta": { "requests": 0.18, "tokens": -0.05 }
 }
 ```
 
@@ -159,8 +167,10 @@ per credential, for a time range and its previous range:
 One point per observed change per credential per window:
 
 ```json
-[{ "at": "2026-09-15T00:00:00Z", "window": "Weekly", "usedPercent": 0 },
- { "at": "2026-09-16T10:31:04Z", "window": "Weekly", "usedPercent": 77 }]
+[
+	{ "at": "2026-09-15T00:00:00Z", "window": "Weekly", "usedPercent": 0 },
+	{ "at": "2026-09-16T10:31:04Z", "window": "Weekly", "usedPercent": 77 }
+]
 ```
 
 Resets appear as drops to zero; mark them.
@@ -168,8 +178,15 @@ Resets appear as drops to zero; mark them.
 ### Alert rules and incidents
 
 ```json
-{ "id": "codex-weekly-low", "scope": "provider:codex", "window": "Weekly", "remainingBelow": 10,
-  "state": "firing", "since": "2026-09-16T09:12:00Z", "lastFired": "2026-09-16T09:12:00Z" }
+{
+	"id": "codex-weekly-low",
+	"scope": "provider:codex",
+	"window": "Weekly",
+	"remainingBelow": 10,
+	"state": "firing",
+	"since": "2026-09-16T09:12:00Z",
+	"lastFired": "2026-09-16T09:12:00Z"
+}
 ```
 
 Rules come from a file and are read-only in the UI. Kinds: remaining below a
