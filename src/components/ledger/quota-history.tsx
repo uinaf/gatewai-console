@@ -31,7 +31,7 @@ export function QuotaHistory({
 	range: Range;
 	fetchedAt: string;
 }) {
-	const [hover, setHover] = useState<number | null>(null);
+	const [hover, setHover] = useState<string | null>(null);
 	const from = Date.parse(range.from);
 	const to = Date.parse(range.to);
 	const x = (iso: string) =>
@@ -85,9 +85,9 @@ export function QuotaHistory({
 			)
 				best = i;
 		}
-		setHover(best);
+		setHover(observations[best] ?? null);
 	};
-	const hovered = hover === null ? null : (observations[hover] ?? null);
+	const hovered = hover !== null && observations.includes(hover) ? hover : null;
 	const readout = hovered
 		? series.map((s) => {
 				const latest = s.points.filter((p) => p.at <= hovered).at(-1);
@@ -150,7 +150,7 @@ export function QuotaHistory({
 						))}
 					</div>
 					{hovered ? (
-						<div className="history-tip" role="status">
+						<div className="history-tip" aria-hidden="true">
 							<span className="u-meta">{stamp(hovered)}</span>
 							{readout.map((r) => (
 								<span key={r.label}>

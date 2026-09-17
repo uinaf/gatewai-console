@@ -97,6 +97,7 @@ function LedgerPage() {
 							className="u-input"
 							type="date"
 							name="from"
+							aria-invalid={view.customRejected || undefined}
 							defaultValue={search.from?.slice(0, 10) ?? view.range.from.slice(0, 10)}
 						/>
 					</label>
@@ -106,6 +107,7 @@ function LedgerPage() {
 							className="u-input"
 							type="date"
 							name="to"
+							aria-invalid={view.customRejected || undefined}
 							defaultValue={search.to?.slice(0, 10) ?? view.range.to.slice(0, 10)}
 						/>
 					</label>
@@ -115,11 +117,15 @@ function LedgerPage() {
 				</form>
 			) : null}
 			{view.customRejected ? (
-				<p className="u-meta range-note">
+				<p className="u-meta range-note" role="alert">
 					that range is empty or inverted; showing the last seven days instead.
 				</p>
 			) : null}
-			{view.error ? <p className="u-meta range-note">collector: {view.error}</p> : null}
+			{view.error ? (
+				<p className="u-meta range-note" role="status">
+					collector: {view.error}
+				</p>
+			) : null}
 
 			<LedgerStats current={view.current} previous={view.previous} />
 

@@ -8,6 +8,17 @@ import { PAGE_SIZE, loadAlerts } from "#/functions/alerts";
 import { useAutoRefresh } from "#/hooks/use-auto-refresh";
 import { useNow } from "#/hooks/use-now";
 
+/** Pages 1 and `total`, the two on either side of `current`; `null` marks a skipped gap. */
+export const pageWindow = (current: number, total: number): ReadonlyArray<number | null> => {
+	const keep = new Set([1, total, current - 2, current - 1, current, current + 1, current + 2]);
+	const out: Array<number | null> = [];
+	for (let p = 1; p <= total; p += 1) {
+		if (keep.has(p)) out.push(p);
+		else if (out.at(-1) !== null) out.push(null);
+	}
+	return out;
+};
+
 export const Route = createFileRoute("/alerts")({
 	validateSearch: (search: Record<string, unknown>): { page?: number } => {
 		const page = Number(search.page);
@@ -45,7 +56,11 @@ function AlertsPage() {
 			stamp={{ observedAt: view.observedAt, serverNow: now }}
 			title="alerts"
 		>
-			{view.error ? <p className="u-meta range-note">{view.error}</p> : null}
+			{view.error ? (
+				<p className="u-meta range-note" role="status">
+					{view.error}
+				</p>
+			) : null}
 
 			<section className="alerts-block">
 				<span className="u-label">firing</span>
@@ -174,16 +189,22 @@ function AlertsPage() {
 							{view.total}
 						</span>
 						<nav className="u-pager" aria-label="incident pages">
-							{Array.from({ length: pages }, (_, i) => i + 1).map((p) => (
-								<Link
-									key={p}
-									to="/alerts"
-									search={p === 1 ? {} : { page: p }}
-									aria-current={p === view.page ? "page" : undefined}
-								>
-									{String(p).padStart(2, "0")}
-								</Link>
-							))}
+							{pageWindow(view.page, pages).map((p, i) =>
+								p === null ? (
+									<span key={`gap-${i}`} className="u-meta" aria-hidden="true">
+										…
+									</span>
+								) : (
+									<Link
+										key={p}
+										to="/alerts"
+										search={p === 1 ? {} : { page: p }}
+										aria-current={p === view.page ? "page" : undefined}
+									>
+										{String(p).padStart(2, "0")}
+									</Link>
+								),
+							)}
 						</nav>
 					</div>
 				) : null}

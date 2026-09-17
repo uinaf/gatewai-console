@@ -72,13 +72,14 @@ export const resolveRange = (
 	query: LedgerQuery,
 	now: number,
 ): Range & { readonly customRejected: boolean } => {
-	// Submitted dates, even empty ones, are a custom range to judge; absent ones are the initial view.
-	const custom = query.preset === "custom" && query.from !== undefined && query.to !== undefined;
+	// Any submitted bound makes it a custom range to judge; a bare `custom` preset is the initial view.
+	const custom = query.preset === "custom" && (query.from !== undefined || query.to !== undefined);
 	if (custom) {
-		const from = Date.parse(query.from);
-		const to = Date.parse(query.to);
+		const rawTo = query.to ?? "";
+		const from = Date.parse(query.from ?? "");
+		const to = Date.parse(rawTo);
 		// A date-only `to` means the whole day, so a single calendar day is a valid range.
-		const end = query.to.length === 10 ? to + 86_400_000 : to;
+		const end = rawTo.length === 10 ? to + 86_400_000 : to;
 		if (Number.isFinite(from) && Number.isFinite(end) && from < end) {
 			return {
 				from: new Date(from).toISOString(),

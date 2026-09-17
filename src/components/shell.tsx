@@ -53,11 +53,16 @@ export function Shell({ host, operator, stamp, title, headExtra, children }: She
 		<div className="console-shell">
 			<header className="u-topbar">
 				<div className="u-shell-wide u-topbar-row">
-					<a className="u-topbar-mark" href="/">
-						<img src="https://cdn.uinaf.dev/images/uinaf-computer.png" alt="" />
+					<Link className="u-topbar-mark" to="/">
+						<img
+							src="https://cdn.uinaf.dev/images/uinaf-computer.png"
+							alt=""
+							width={20}
+							height={20}
+						/>
 						gatewai-console
-					</a>
-					<nav className="u-topbar-nav">
+					</Link>
+					<nav className="u-topbar-nav" aria-label="sections">
 						{SECTIONS.map((section) => (
 							<Link key={section.label} to={section.to} activeProps={{ "aria-current": "page" }}>
 								{section.label}

@@ -517,6 +517,26 @@ a.card-action {
 	}
 }
 
+/* The design system drops the outline on focused inputs and selects and
+   reuses the hover border instead; restore a ring for keyboard users. */
+.u-select:focus-visible,
+.u-input:focus-visible {
+	outline: 2px solid var(--border-hover);
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.stamp.u-tip::after,
+	.stamp.u-tip:hover::after,
+	.stamp.u-tip:focus-visible::after {
+		transform: translateX(-50%);
+		transition: none;
+	}
+	.card-foot:not([data-note]) .card-actions {
+		transition: none;
+	}
+}
+
 /* ledger */
 .range-note {
 	margin: var(--sp-3) 0 0;

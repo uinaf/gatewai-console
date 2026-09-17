@@ -32,3 +32,12 @@ test("an inverted or unparsable custom range falls back to the 7d preset", () =>
 		customRejected: true,
 	});
 });
+
+test("a custom range with only one bound is rejected, not silently defaulted", () => {
+	expect(
+		resolveRange({ preset: "custom", by: "client", from: "2026-09-10" }, now).customRejected,
+	).toBe(true);
+	expect(
+		resolveRange({ preset: "custom", by: "client", to: "2026-09-10" }, now).customRejected,
+	).toBe(true);
+});

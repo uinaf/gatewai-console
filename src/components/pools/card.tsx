@@ -122,6 +122,7 @@ export function CredentialCard({
 							type="button"
 							className="u-btn u-btn--sm"
 							disabled={pending}
+							aria-label={`reset cooldown for ${credential.label}`}
 							onClick={() =>
 								act("reset cooldown", () => reset({ data: { authIndex: credential.authIndex } }))
 							}
@@ -133,6 +134,7 @@ export function CredentialCard({
 						type="button"
 						className="card-action"
 						disabled={pending}
+						aria-label={`refresh ${credential.label}`}
 						onClick={() => act("refresh", () => refresh({ data: { name: credential.name } }))}
 					>
 						refresh
@@ -142,6 +144,7 @@ export function CredentialCard({
 							type="button"
 							className="card-action"
 							disabled={pending}
+							aria-label={`websockets for ${credential.label}`}
 							aria-pressed={credential.websockets}
 							onClick={() =>
 								act("websockets", () =>
