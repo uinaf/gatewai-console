@@ -11,14 +11,16 @@ interface StampProps {
 	readonly serverNow: number;
 }
 
-function Stamp({ observedAt, serverNow }: StampProps) {
+function Stamp({ observedAt, serverNow, host }: StampProps & { host?: string }) {
 	const now = useNow(serverNow);
 	const observed = observedAt === null ? Number.NaN : Date.parse(observedAt);
 	const stale = !Number.isFinite(observed) || now - observed > STALE_AFTER_MS;
 	return (
 		<span className="stamp" data-stale={stale || undefined}>
 			<span className={stale ? "u-dot u-dot--warn" : "u-dot u-dot--ok"} />
-			{stale ? "stale · " : ""}observed {ago(observedAt, now)}
+			{host ? `${host} · ` : ""}
+			{stale ? "stale · " : ""}
+			{host ? ago(observedAt, now) : `observed ${ago(observedAt, now)}`}
 		</span>
 	);
 }
@@ -27,6 +29,9 @@ export interface ShellProps {
 	readonly host: string;
 	readonly operator: string | null;
 	readonly stamp?: StampProps;
+	/** Page heading. Narrow screens carry the host and stamp beside it instead of in the topbar. */
+	readonly title?: string;
+	readonly headExtra?: ReactNode;
 	readonly children: ReactNode;
 }
 
@@ -36,7 +41,7 @@ const SECTIONS = [
 	{ to: "/alerts", label: "alerts", live: true },
 ] as const;
 
-export function Shell({ host, operator, stamp, children }: ShellProps) {
+export function Shell({ host, operator, stamp, title, headExtra, children }: ShellProps) {
 	return (
 		<div className="console-shell">
 			<header className="u-topbar">
@@ -72,7 +77,20 @@ export function Shell({ host, operator, stamp, children }: ShellProps) {
 					</div>
 				</div>
 			</header>
-			<main className="u-shell-wide console-main">{children}</main>
+			<main className="u-shell-wide console-main">
+				{title ? (
+					<div className="page-head">
+						<h1>{title}</h1>
+						{headExtra}
+						{stamp ? (
+							<span className="stamp-narrow">
+								<Stamp {...stamp} host={host} />
+							</span>
+						) : null}
+					</div>
+				) : null}
+				{children}
+			</main>
 		</div>
 	);
 }

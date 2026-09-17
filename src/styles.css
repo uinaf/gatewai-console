@@ -320,41 +320,130 @@ body {
 	gap: var(--sp-3);
 }
 
+.stamp-narrow {
+	display: none;
+	margin-left: auto;
+	font-size: var(--text-xs);
+	color: var(--fg-subtle);
+	white-space: nowrap;
+}
+.card-action {
+	height: auto;
+	padding: 0;
+	font-family: inherit;
+	font-size: var(--text-xs);
+	color: var(--fg-muted);
+	background: none;
+	border: 0;
+	cursor: pointer;
+}
+.card-action:hover {
+	color: var(--fg);
+	text-decoration: underline;
+}
+.card-action:disabled {
+	opacity: 0.45;
+	pointer-events: none;
+}
+.card-actions {
+	align-items: center;
+	gap: var(--sp-4);
+}
+
 @media (max-width: 720px) {
+	/* The 390 artboard: mark and nav only in the topbar; host and stamp sit beside the h1. */
 	.u-topbar-row {
-		flex-wrap: wrap;
-		row-gap: var(--sp-2);
+		gap: var(--sp-3);
+		height: 48px;
+	}
+	.u-topbar-mark {
+		font-size: var(--text-sm);
+	}
+	.u-topbar-nav {
+		gap: var(--sp-3);
+		font-size: var(--text-xs);
 	}
 	.u-topbar-actions {
-		flex-basis: 100%;
-		justify-content: flex-end;
-	}
-	.operator {
 		display: none;
 	}
-	.stats {
-		grid-template-columns: repeat(3, 1fr);
+	.stamp-narrow {
+		display: inline-flex;
 	}
-	.stat-detail {
+	.console-main {
+		padding-block: var(--sp-5);
+	}
+	.stats {
+		margin-top: var(--sp-4);
+	}
+	.u-panel-grid.stats > * {
+		padding: var(--sp-3);
+		gap: var(--sp-1);
+	}
+	.stats .u-stat-value {
+		font-size: var(--text-lg);
+	}
+	.stat-plan,
+	.stats .u-stat-note {
+		display: none;
+	}
+	.pools-toolbar {
+		margin-top: var(--sp-4);
+	}
+	.pools-sort {
 		display: none;
 	}
 	.cards {
 		grid-template-columns: 1fr;
 		gap: var(--sp-3);
+		margin-top: var(--sp-3);
 	}
 	.card {
 		padding: var(--sp-4);
 		gap: var(--sp-3);
 	}
+	.card-tags {
+		display: none;
+	}
+	.meters {
+		gap: var(--sp-2);
+	}
+	/* label · value on the left, reset on the right, bar below. */
 	.meter {
-		grid-template-columns: 1fr 40px 96px;
+		grid-template-columns: auto auto 1fr;
+		grid-template-areas:
+			"label value reset"
+			"track track track";
+		gap: 5px var(--sp-2);
 	}
 	.meter-label {
-		grid-column: 1 / -1;
+		grid-area: label;
+	}
+	.meter-value {
+		grid-area: value;
+		text-align: left;
+	}
+	.meter-value::before {
+		content: "· ";
+		color: var(--fg-subtle);
+	}
+	.meter-reset {
+		grid-area: reset;
+	}
+	.meter-track {
+		grid-area: track;
+	}
+	.buckets-block .u-label,
+	.buckets-block .u-axis {
+		display: none;
+	}
+	.buckets {
+		height: 22px;
+		margin-top: 0;
 	}
 	.card-foot {
 		flex-direction: column;
 		align-items: flex-start;
+		gap: var(--sp-3);
 	}
 }
 

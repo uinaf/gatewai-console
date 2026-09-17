@@ -17,7 +17,7 @@ test("fixture decodes without token material", () => {
 	expect(JSON.stringify(files)).not.toMatch(/id_token|access_token|refresh_token/);
 });
 
-test("anthropic unified windows fold into 5-hour, weekly, weekly opus", () => {
+test("anthropic unified windows fold into 5-hour, weekly, and the flagship weekly", () => {
 	const credential = byName("claude-two@example.com.json");
 	expect(credential.status).toBe("cooling");
 	expect(credential.cooldowns[0]).toMatchObject({ model: "claude-fable-5-1", reason: "quota" });
@@ -25,7 +25,7 @@ test("anthropic unified windows fold into 5-hour, weekly, weekly opus", () => {
 		{ label: "5-hour", usedPercent: 17, resetsAt: "2026-09-16T10:30:00.000Z", status: "allowed" },
 		{ label: "weekly", usedPercent: 50, resetsAt: "2026-09-19T08:00:00.000Z", status: "allowed" },
 		{
-			label: "weekly opus",
+			label: "weekly fable",
 			usedPercent: 100,
 			resetsAt: "2026-09-19T08:00:00.000Z",
 			status: "rejected",
@@ -35,7 +35,7 @@ test("anthropic unified windows fold into 5-hour, weekly, weekly opus", () => {
 	expect(credential.quota.credits).toBeNull();
 });
 
-test("codex primary window, credits, plan, and named families", () => {
+test("codex primary window, credits, and plan; per-family windows are dropped", () => {
 	const credential = byName("codex-two@example.com.json");
 	expect(credential.status).toBe("active");
 	expect(credential.plan).toBe("pro");
@@ -43,9 +43,7 @@ test("codex primary window, credits, plan, and named families", () => {
 	expect(credential.quota.credits).toEqual({ balance: 712.249535, unlimited: false });
 	const labels = credential.quota.windows.map((window) => [window.label, window.usedPercent]);
 	expect(labels).toContainEqual(["weekly", 77]);
-	expect(labels).toContainEqual(["gpt-5.3-codex-spark 5-hour", 0]);
-	expect(labels).toContainEqual(["gpt-5.3-codex-spark weekly", 0]);
-	expect(labels.map(([label]) => label)).not.toContain("0m");
+	expect(labels.map(([label]) => label)).toEqual(["weekly"]);
 });
 
 test("xai reports counts without windows", () => {

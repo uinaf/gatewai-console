@@ -1,8 +1,10 @@
 import type { AuthFile } from "#/server/management/schema";
 
 // Folds raw provider rate-limit headers into windows so nothing downstream
-// parses headers. Anthropic: Unified-{5h,7d,7d_oi}. Codex: Primary/Secondary
-// on the top level and per named family (`Additional-<Name>`, `Bengalfox`).
+// parses headers. Anthropic: Unified-{5h,7d,7d_oi}, where 7d_oi is the
+// flagship model's own weekly window and takes that model's family name.
+// Codex: Primary/Secondary on the top level; per-family windows
+// (`Additional-<Name>`) are noise for the operator and are dropped.
 // xAI sends none.
 
 type WindowStatus = "allowed" | "limited" | "rejected" | "unknown";
@@ -56,11 +58,11 @@ const windowLabel = (minutes: string | undefined): string | null => {
 	}
 };
 
-const anthropicWindows = (signals: Signals): ReadonlyArray<QuotaWindow> => {
+const anthropicWindows = (signals: Signals, flagship: string): ReadonlyArray<QuotaWindow> => {
 	const spans: ReadonlyArray<readonly [string, string]> = [
 		["5h", "5-hour"],
 		["7d", "weekly"],
-		["7d_oi", "weekly opus"],
+		["7d_oi", `weekly ${flagship}`],
 	];
 	return spans.flatMap(([span, label]) => {
 		const utilization = finite(signals[`Anthropic-Ratelimit-Unified-${span}-Utilization`]);
@@ -76,7 +78,6 @@ const anthropicWindows = (signals: Signals): ReadonlyArray<QuotaWindow> => {
 	});
 };
 
-// `X-Codex-Primary-*` and `X-Codex-<Family>-Primary-*` share one shape.
 const codexStatus = (
 	used: number,
 	limitReached: string | undefined,
@@ -86,65 +87,36 @@ const codexStatus = (
 	return limitReached?.toLowerCase() === "true" || used >= 100 ? "limited" : "allowed";
 };
 
-const codexFamily = (
-	signals: Signals,
-	prefix: string,
-	limitName: string | null,
-	limitReached: string | undefined,
-	allowed: string | undefined,
-): ReadonlyArray<QuotaWindow> =>
+const codexWindows = (signals: Signals): ReadonlyArray<QuotaWindow> =>
 	(["Primary", "Secondary"] as const).flatMap((tier) => {
-		const used = finite(signals[`${prefix}${tier}-Used-Percent`]);
-		const minutes = signals[`${prefix}${tier}-Window-Minutes`];
+		const used = finite(signals[`X-Codex-${tier}-Used-Percent`]);
+		const minutes = signals[`X-Codex-${tier}-Window-Minutes`];
 		// A zero-minute window is a placeholder tier the upstream sends on some models.
 		if (used === null || minutes === "0") return [];
-		const span = windowLabel(minutes);
-		const label = limitName
-			? span
-				? `${limitName} ${span}`
-				: limitName
-			: (span ?? tier.toLowerCase());
 		return [
 			{
-				label,
+				label: windowLabel(minutes) ?? tier.toLowerCase(),
 				usedPercent: percent(used),
-				resetsAt: epochToIso(signals[`${prefix}${tier}-Reset-At`]),
-				status: codexStatus(used, limitReached, allowed),
+				resetsAt: epochToIso(signals[`X-Codex-${tier}-Reset-At`]),
+				status: codexStatus(used, signals["X-Codex-Limit-Reached"], signals["X-Codex-Allowed"]),
 			},
 		];
 	});
 
-const codexWindows = (signals: Signals): ReadonlyArray<QuotaWindow> => {
-	const top = codexFamily(
-		signals,
-		"X-Codex-",
-		null,
-		signals["X-Codex-Limit-Reached"],
-		signals["X-Codex-Allowed"],
-	);
-	const families = new Set<string>();
-	for (const key of Object.keys(signals)) {
-		const match = /^X-Codex-(.+)-Primary-Used-Percent$/.exec(key);
-		if (match?.[1] && match[1] !== "Primary") families.add(match[1]);
+// `claude-fable-5-1` -> `fable`. The per-model snapshot keys name the model
+// the 7d_oi window belongs to; without one the current flagship is assumed.
+const flagshipOf = (file: AuthFile): string => {
+	for (const key of Object.keys(file.model_quotas ?? {})) {
+		const match = /^claude-([a-z]+)/.exec(key);
+		if (match?.[1]) return match[1];
 	}
-	const named = [...families].flatMap((family) => {
-		const prefix = `X-Codex-${family}-`;
-		const name = signals[`${prefix}Limit-Name`] ?? family.replace(/^Additional-/, "");
-		return codexFamily(
-			signals,
-			prefix,
-			name.toLowerCase(),
-			signals[`${prefix}Limit-Reached`],
-			signals[`${prefix}Allowed`],
-		);
-	});
-	return [...top, ...named];
+	return "fable";
 };
 
-const windowsOf = (provider: string, signals: Signals): ReadonlyArray<QuotaWindow> => {
-	switch (provider) {
+const windowsOf = (file: AuthFile, signals: Signals): ReadonlyArray<QuotaWindow> => {
+	switch (file.provider) {
 		case "claude":
-			return anthropicWindows(signals);
+			return anthropicWindows(signals, flagshipOf(file));
 		case "codex":
 			return codexWindows(signals);
 		default:
@@ -174,7 +146,7 @@ export const quotaOf = (file: AuthFile): Quota => {
 	let overage: Quota["overage"] = null;
 	for (const snapshot of ordered) {
 		const signals = snapshot?.signals ?? {};
-		for (const window of windowsOf(file.provider, signals)) windows.set(window.label, window);
+		for (const window of windowsOf(file, signals)) windows.set(window.label, window);
 		if (snapshot?.observed_at) observedAt = snapshot.observed_at;
 		const balance = finite(signals["X-Codex-Credits-Balance"]);
 		if (balance !== null) {

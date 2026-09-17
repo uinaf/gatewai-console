@@ -38,8 +38,8 @@ function AlertsPage() {
 			host={view.host}
 			operator={view.operator}
 			stamp={{ observedAt: view.observedAt, serverNow: now }}
+			title="alerts"
 		>
-			<h1>alerts</h1>
 			{view.error ? <p className="u-meta range-note">{view.error}</p> : null}
 
 			<section className="alerts-block">

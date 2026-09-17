@@ -8,7 +8,7 @@ export function Stats({ summaries }: { summaries: ReadonlyArray<ProviderSummary>
 					<span className="u-label stat-label">
 						<span className="u-dot" data-provider={summary.provider} />
 						{summary.provider}
-						{summary.plan ? ` · ${summary.plan}` : ""}
+						{summary.plan ? <span className="stat-plan"> · {summary.plan}</span> : null}
 					</span>
 					<span className="u-stat-value">
 						{summary.remainingPercent === null ? "—" : `${summary.remainingPercent}%`}
