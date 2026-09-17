@@ -43,9 +43,9 @@ export interface ShellProps {
 }
 
 const SECTIONS = [
-	{ to: "/", label: "pools", live: true },
-	{ to: "/ledger", label: "ledger", live: true },
-	{ to: "/alerts", label: "alerts", live: true },
+	{ to: "/", label: "pools" },
+	{ to: "/ledger", label: "ledger" },
+	{ to: "/alerts", label: "alerts" },
 ] as const;
 
 export function Shell({ host, operator, stamp, title, headExtra, children }: ShellProps) {
@@ -58,17 +58,11 @@ export function Shell({ host, operator, stamp, title, headExtra, children }: She
 						gatewai-console
 					</a>
 					<nav className="u-topbar-nav">
-						{SECTIONS.map((section) =>
-							section.live ? (
-								<Link key={section.label} to={section.to} activeProps={{ "aria-current": "page" }}>
-									{section.label}
-								</Link>
-							) : (
-								<span key={section.label} className="nav-soon" title="not built yet">
-									{section.label}
-								</span>
-							),
-						)}
+						{SECTIONS.map((section) => (
+							<Link key={section.label} to={section.to} activeProps={{ "aria-current": "page" }}>
+								{section.label}
+							</Link>
+						))}
 					</nav>
 					<div className="u-topbar-actions">
 						<span className="u-sep topbar-divider" aria-hidden="true">
@@ -76,7 +70,7 @@ export function Shell({ host, operator, stamp, title, headExtra, children }: She
 						</span>
 						<span className="u-meta">
 							{host}
-							{operator ? <span className="operator"> · {operator}</span> : null}
+							{operator ? <span> · {operator}</span> : null}
 						</span>
 						{stamp ? (
 							<>

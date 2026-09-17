@@ -41,11 +41,6 @@ body {
 	gap: var(--sp-2);
 }
 
-.nav-soon {
-	color: var(--fg-faint);
-	cursor: default;
-}
-
 .stamp {
 	display: inline-flex;
 	align-items: center;
@@ -53,9 +48,7 @@ body {
 	font-size: var(--text-xs);
 	color: var(--fg-subtle);
 }
-/* The meta cluster is smaller than the nav links and would centre a few
-   pixels higher. A zero-width strut at the link size gives the cluster the
-   same line box, so both centre on one baseline. */
+/* The meta cluster is one text size smaller than the nav; baseline alignment keeps both on one line. */
 .u-topbar-actions {
 	align-items: baseline;
 	font-size: var(--text-sm);
@@ -347,7 +340,8 @@ body {
 }
 .card-actions {
 	display: flex;
-	gap: var(--sp-2);
+	align-items: center;
+	gap: var(--sp-4);
 	flex: none;
 }
 
@@ -408,10 +402,6 @@ a.card-action {
 	opacity: 0.45;
 	pointer-events: none;
 }
-.card-actions {
-	align-items: center;
-	gap: var(--sp-4);
-}
 
 @media (max-width: 720px) {
 	/* The 390 artboard: mark and nav only in the topbar; host and stamp sit beside the h1. */
@@ -446,7 +436,6 @@ a.card-action {
 	.stats .u-stat-value {
 		font-size: var(--text-lg);
 	}
-	.stat-plan,
 	.stats .u-stat-note {
 		display: none;
 	}
@@ -516,11 +505,8 @@ a.card-action {
 	.meter-reset::before {
 		content: "resets ";
 	}
-	/* 390 artboard: the ok · failed line sits under the sparkline, credits are dropped. */
+	/* 390 artboard: credits are dropped. */
 	.card-meta {
-		order: 1;
-	}
-	.card-credits {
 		display: none;
 	}
 	.page-head {
@@ -551,6 +537,7 @@ a.card-action {
 .share i[data-series] {
 	background: var(--series);
 }
+/* Five viz tokens; producers wrap at five (breakdown.tsx, quota-history.tsx). */
 [data-series="0"] {
 	--series: var(--viz-1);
 }
@@ -565,15 +552,6 @@ a.card-action {
 }
 [data-series="4"] {
 	--series: var(--viz-5);
-}
-[data-series="5"] {
-	--series: var(--viz-6);
-}
-[data-series="6"] {
-	--series: var(--viz-7);
-}
-[data-series="7"] {
-	--series: var(--viz-8);
 }
 .table-scroll {
 	overflow-x: auto;
@@ -632,39 +610,15 @@ a.card-action {
 	border-bottom: 1px solid var(--border);
 	touch-action: none;
 }
-.history-chart .line[data-series="0"] {
-	stroke: var(--viz-1);
-}
-.history-chart .line[data-series="1"] {
-	stroke: var(--viz-2);
-}
-.history-chart .line[data-series="2"] {
-	stroke: var(--viz-3);
-}
-.history-chart .line[data-series="3"] {
-	stroke: var(--viz-4);
-}
-.history-chart .line[data-series="4"] {
-	stroke: var(--viz-5);
+.history-chart .line[data-series] {
+	stroke: var(--series);
 }
 .key {
 	display: inline-block;
 	width: 16px;
 	margin-right: 6px;
 	vertical-align: 2px;
-	border-top: 2px solid var(--viz-1);
-}
-.key[data-series="1"] {
-	border-top-color: var(--viz-2);
-}
-.key[data-series="2"] {
-	border-top-color: var(--viz-3);
-}
-.key[data-series="3"] {
-	border-top-color: var(--viz-4);
-}
-.key[data-series="4"] {
-	border-top-color: var(--viz-5);
+	border-top: 2px solid var(--series, var(--viz-1));
 }
 .key[data-dashed] {
 	border-top-style: dashed;
@@ -710,9 +664,6 @@ a.card-action {
 }
 
 @media (max-width: 720px) {
-	.page-head {
-		flex-wrap: wrap;
-	}
 	.share-head {
 		width: 120px;
 	}
