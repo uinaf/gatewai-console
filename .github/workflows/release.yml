@@ -120,33 +120,47 @@ jobs:
         run: |
           set -euo pipefail
           short="${SOURCE_SHA:0:7}"
-          base=$(gh api "repos/$INFRA_REPO/git/ref/heads/main" --jq .object.sha)
-          gh api "repos/$INFRA_REPO/contents/$COMPOSE_PATH?ref=$base" --jq .content | base64 -d > compose.yaml
-          current=$(sed -nE "s|^ *image: $IMAGE:[^@]+@(sha256:[0-9a-f]{64})$|\1|p" compose.yaml)
-          if [ "$current" = "$DIGEST" ]; then
-            echo "already pinned to $DIGEST" >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-          sed -i -E "s|^( *image: )$IMAGE:[^@]+@sha256:[0-9a-f]{64}$|\1$IMAGE:$VERSION@$DIGEST|" compose.yaml
-          grep -q "$DIGEST" compose.yaml
-          jq -n --arg repo "$INFRA_REPO" --arg base "$base" \
-            --arg path "$COMPOSE_PATH" --arg contents "$(base64 -w0 compose.yaml)" \
-            --arg headline "chore(platform): gatewai-console at $short" \
-            --arg body "$IMAGE:$VERSION@$DIGEST from https://github.com/$SOURCE_REPO/commit/$SOURCE_SHA" '{
-              query: "mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid } } }",
-              variables: { input: {
-                branch: { repositoryNameWithOwner: $repo, branchName: "main" },
-                expectedHeadOid: $base,
-                message: { headline: $headline, body: $body },
-                fileChanges: { additions: [ { path: $path, contents: $contents } ] }
-              } }
-            }' > commit.json
-          oid=$(gh api graphql --input commit.json --jq '.data.createCommitOnBranch.commit.oid')
-          echo "- bump: https://github.com/$INFRA_REPO/commit/$oid" >> "$GITHUB_STEP_SUMMARY"
+          # expectedHeadOid rejects the commit when main moved since the read; re-read and retry.
+          for attempt in 1 2 3; do
+            base=$(gh api "repos/$INFRA_REPO/git/ref/heads/main" --jq .object.sha)
+            gh api "repos/$INFRA_REPO/contents/$COMPOSE_PATH?ref=$base" --jq .content | base64 -d > compose.yaml
+            current=$(sed -nE "s|^ *image: $IMAGE:[^@]+@(sha256:[0-9a-f]{64})$|\1|p" compose.yaml)
+            if [ -z "$current" ]; then
+              echo "::error::$COMPOSE_PATH on $INFRA_REPO@${base:0:7} has no digest-pinned image line for $IMAGE"
+              exit 1
+            fi
+            if [ "$current" = "$DIGEST" ]; then
+              echo "already pinned to $DIGEST" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sed -i -E "s|^( *image: )$IMAGE:[^@]+@sha256:[0-9a-f]{64}$|\1$IMAGE:$VERSION@$DIGEST|" compose.yaml
+            grep -q "$DIGEST" compose.yaml
+            jq -n --arg repo "$INFRA_REPO" --arg base "$base" \
+              --arg path "$COMPOSE_PATH" --arg contents "$(base64 -w0 compose.yaml)" \
+              --arg headline "chore(platform): gatewai-console at $short" \
+              --arg body "$IMAGE:$VERSION@$DIGEST from https://github.com/$SOURCE_REPO/commit/$SOURCE_SHA" '{
+                query: "mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid } } }",
+                variables: { input: {
+                  branch: { repositoryNameWithOwner: $repo, branchName: "main" },
+                  expectedHeadOid: $base,
+                  message: { headline: $headline, body: $body },
+                  fileChanges: { additions: [ { path: $path, contents: $contents } ] }
+                } }
+              }' > commit.json
+            if oid=$(gh api graphql --input commit.json --jq '.data.createCommitOnBranch.commit.oid'); then
+              echo "- bump: https://github.com/$INFRA_REPO/commit/$oid" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "attempt $attempt: main moved past ${base:0:7}; retrying" >&2
+            sleep $((attempt * 5))
+          done
+          echo "::error::could not commit the digest bump after 3 attempts"
+          exit 1
 
   # Every push publishes a multi-arch image; keep the registry to the last few.
+  # Runs only after the bump landed, so the deployed digest is never pruned away.
   prune-registry:
-    needs: publish
+    needs: [publish, bump-infra]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:

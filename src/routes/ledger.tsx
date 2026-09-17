@@ -42,7 +42,12 @@ function LedgerPage() {
 
 	if (!view.ok) {
 		return (
-			<Shell host={view.host} operator={view.operator} stamp={{ observedAt: null, serverNow: now }}>
+			<Shell
+				host={view.host}
+				operator={view.operator}
+				stamp={{ observedAt: null, serverNow: now }}
+				title="ledger"
+			>
 				<Fault reason="internal" message={view.message} host={view.host} />
 			</Shell>
 		);
