@@ -26,3 +26,6 @@ export const ago = (iso: string | null, now: number): string => {
 };
 
 export const credits = (value: number) => value.toFixed(2);
+
+/** The card's DOM id and the hash other pages link to; raw so CSS `:target` and the router agree. */
+export const credentialAnchor = (name: string) => `credential-${name}`;

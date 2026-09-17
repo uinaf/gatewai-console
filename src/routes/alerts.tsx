@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { span, stamp } from "#/components/alerts/format";
 import { Fault } from "#/components/pools/fault";
+import { credentialAnchor } from "#/components/pools/format";
 import { Shell } from "#/components/shell";
 import { PAGE_SIZE, loadAlerts } from "#/functions/alerts";
 import { useAutoRefresh } from "#/hooks/use-auto-refresh";
@@ -59,6 +60,9 @@ function AlertsPage() {
 										<span className="u-dot u-dot--error" />
 										{f.rule.id}
 									</div>
+									<Link to="/" hash={credentialAnchor(f.subject)} className="u-meta firing-subject">
+										{f.label} →
+									</Link>
 									<p className="u-meta firing-detail">{f.detail}</p>
 								</div>
 								<span className="u-meta firing-since">since {stamp(f.since)}</span>
@@ -141,7 +145,15 @@ function AlertsPage() {
 												{incident.what}
 											</span>
 										</td>
-										<td>{incident.subject.replace(/\.json$/, "")}</td>
+										<td>
+											<Link
+												to="/"
+												hash={credentialAnchor(incident.subject)}
+												title={incident.subject}
+											>
+												{incident.label}
+											</Link>
+										</td>
 										<td>{incident.rule_id}</td>
 										<td data-num>{stamp(incident.started_at)}</td>
 										<td data-num data-ongoing={incident.ended_at ? undefined : ""}>

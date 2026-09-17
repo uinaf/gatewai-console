@@ -11,6 +11,7 @@ import { ClientLabels } from "#/server/ledger/clients";
 import {
 	breakdown,
 	credentialLabels,
+	credentialNamesByAuthIndex,
 	previousRange,
 	quotaHistory,
 	summary,
@@ -238,10 +239,14 @@ test("the credential dimension labels rows by auth_index", async () => {
 				[row({ request_id: "1", timestamp: "2026-09-15T01:00:00.000Z" })],
 				ClientLabels.empty(),
 			);
-			return yield* breakdown("credential", range, yield* credentialLabels);
+			return {
+				rows: yield* breakdown("credential", range, yield* credentialLabels),
+				names: yield* credentialNamesByAuthIndex,
+			};
 		}),
 	);
-	expect(rows[0]).toMatchObject({ key: "cred-a", label: "a@example.com" });
+	expect(rows.rows[0]).toMatchObject({ key: "cred-a", label: "a@example.com" });
+	expect(rows.names.get("cred-a")).toBe("codex-a.json");
 });
 
 test("ranges older than raw retention read the rollups, without percentiles", async () => {

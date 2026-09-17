@@ -2,10 +2,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { CredentialCard } from "#/components/pools/card";
 import { Fault } from "#/components/pools/fault";
+import { credentialAnchor } from "#/components/pools/format";
 import { Stats } from "#/components/pools/stats";
 import { Shell } from "#/components/shell";
 import { loadPools } from "#/functions/pools";
 import { useAutoRefresh } from "#/hooks/use-auto-refresh";
+import { useHash } from "#/hooks/use-hash";
 import { useNow } from "#/hooks/use-now";
 import {
 	type Credential,
@@ -53,6 +55,8 @@ function PoolsPage() {
 	const search = Route.useSearch();
 	const navigate = Route.useNavigate();
 	const now = useNow(Date.parse(view.fetchedAt));
+	// Client-side navigation does not re-evaluate `:target`, so the landed card is marked from the hash.
+	const hash = useHash();
 	useAutoRefresh(REFRESH_MS);
 
 	const sort: Sort = search.sort ?? "remaining";
@@ -120,7 +124,12 @@ function PoolsPage() {
 			) : (
 				<div className="cards">
 					{shown.map((credential) => (
-						<CredentialCard key={credential.name} credential={credential} now={now} />
+						<CredentialCard
+							key={credential.name}
+							credential={credential}
+							now={now}
+							landed={credentialAnchor(credential.name) === hash}
+						/>
 					))}
 				</div>
 			)}

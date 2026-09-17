@@ -1,4 +1,7 @@
+import { Link } from "@tanstack/react-router";
+
 import { compact, count, delta, millis, percent } from "#/components/ledger/format";
+import { credentialAnchor } from "#/components/pools/format";
 import type { BreakdownRow, Dimension } from "#/server/ledger/queries";
 
 // Model share is a stacked bar per row. Each model takes the next viz series
@@ -49,7 +52,15 @@ export function Breakdown({ by, rows }: { by: Dimension; rows: ReadonlyArray<Bre
 					<tbody>
 						{rows.map((row) => (
 							<tr key={row.key}>
-								<td>{row.label}</td>
+								<td>
+									{by === "credential" && row.name ? (
+										<Link to="/" hash={credentialAnchor(row.name)}>
+											{row.label}
+										</Link>
+									) : (
+										row.label
+									)}
+								</td>
 								<td data-num>
 									{count(row.requests)}
 									<br />

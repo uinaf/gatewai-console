@@ -168,6 +168,10 @@ body {
 .card[data-status="cooling"] {
 	border: 1px dashed var(--border-strong);
 }
+.card:target,
+.card[data-landed] {
+	border-color: var(--border-hover);
+}
 .card[data-status="disabled"] {
 	color: var(--fg-muted);
 }
@@ -389,6 +393,9 @@ body {
 	background: none;
 	border: 0;
 	cursor: pointer;
+}
+a.card-action {
+	text-decoration: none;
 }
 .card-action:hover {
 	color: var(--fg);
@@ -740,6 +747,10 @@ body {
 	gap: var(--sp-2);
 	font-size: var(--text-base);
 	color: var(--fg);
+}
+.firing-subject {
+	display: inline-block;
+	margin-top: 6px;
 }
 .firing-detail {
 	margin: 6px 0 0;

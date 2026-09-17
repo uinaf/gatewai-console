@@ -4,6 +4,7 @@ import { Config, Effect } from "effect";
 
 import { AlertRules, describe, scopeLabel } from "#/server/alerts/rules";
 import { type AlertState, type Incident, listIncidents, readStates } from "#/server/alerts/store";
+import { credentialNames } from "#/server/ledger/queries";
 import { readCollectorState } from "#/server/ledger/store";
 import { runtime } from "#/server/runtime";
 
@@ -14,7 +15,7 @@ export interface RuleView {
 	readonly scope: string;
 	readonly condition: string;
 	readonly delivers: boolean;
-	readonly firing: ReadonlyArray<{ subject: string; detail: string; since: string }>;
+	readonly firing: ReadonlyArray<{ subject: string; label: string; detail: string; since: string }>;
 	/** Latest evaluated detail per subject for clear rows, e.g. "weekly remaining 41% on x"; the nearest to firing first. */
 	readonly clear: ReadonlyArray<{ subject: string; detail: string }>;
 	/** Clear since the last incident ended; null while firing or when the rule never fired. */
@@ -39,7 +40,7 @@ interface AlertsLoaded {
 	readonly fetchedAt: string;
 	readonly observedAt: string | null;
 	readonly rules: ReadonlyArray<RuleView>;
-	readonly incidents: ReadonlyArray<Incident>;
+	readonly incidents: ReadonlyArray<Incident & { readonly label: string }>;
 	readonly total: number;
 	readonly page: number;
 	readonly error: string | null;
@@ -75,6 +76,10 @@ export const loadAlerts = createServerFn({ method: "GET" })
 					const states = yield* readStates;
 					const { rows, total } = yield* listIncidents(data.page, PAGE_SIZE);
 					const collector = yield* readCollectorState;
+					const labels = new Map((yield* credentialNames).map((c) => [c.name, c.label]));
+					// Subjects are credential names; the collector subject and unknown names fall back to the bare name.
+					const labelOf = (subject: string) =>
+						labels.get(subject) ?? subject.replace(/\.json$/, "");
 					const byRule = new Map<string, Array<AlertState>>();
 					for (const s of states) byRule.set(s.rule_id, [...(byRule.get(s.rule_id) ?? []), s]);
 					return {
@@ -102,6 +107,7 @@ export const loadAlerts = createServerFn({ method: "GET" })
 								delivers: rule.heartbeat !== undefined,
 								firing: firing.map((s) => ({
 									subject: s.subject,
+									label: labelOf(s.subject),
 									detail: s.detail ?? "",
 									since: s.since ?? fetchedAt,
 								})),
@@ -111,7 +117,7 @@ export const loadAlerts = createServerFn({ method: "GET" })
 								lastFired,
 							};
 						}),
-						incidents: rows,
+						incidents: rows.map((incident) => ({ ...incident, label: labelOf(incident.subject) })),
 						total,
 						page: data.page,
 						error: rules.length === 0 ? "no rules loaded; set GATEWAI_ALERTS_FILE" : null,

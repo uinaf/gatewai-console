@@ -12,6 +12,7 @@ import {
 	clientLabels,
 	credentialLabels,
 	credentialNames,
+	credentialNamesByAuthIndex,
 	previousRange,
 	quotaHistory,
 	summary,
@@ -125,6 +126,14 @@ export const loadLedger = createServerFn({ method: "GET" })
 								: new Map<string, string>();
 					const credentials = yield* credentialNames;
 					const credential = data.credential ?? credentials[0]?.name ?? null;
+					const names =
+						data.by === "credential"
+							? yield* credentialNamesByAuthIndex
+							: new Map<string, string>();
+					const rows = (yield* breakdown(data.by, range, labels)).map((row) => {
+						const name = names.get(row.key);
+						return name ? { ...row, name } : row;
+					});
 					const state = yield* readCollectorState;
 					return {
 						ok: true as const,
@@ -137,7 +146,7 @@ export const loadLedger = createServerFn({ method: "GET" })
 						current: yield* summary(range),
 						previous: yield* summary(previousRange(range)),
 						by: data.by,
-						rows: yield* breakdown(data.by, range, labels),
+						rows,
 						credentials,
 						credential,
 						history: credential ? yield* quotaHistory(credential, range) : [],

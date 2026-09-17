@@ -22,6 +22,8 @@ export interface Summary {
 export interface BreakdownRow {
 	readonly key: string;
 	readonly label: string;
+	/** The credential file name behind an auth_index row, the key the pools card carries. */
+	readonly name?: string;
 	readonly requests: number;
 	readonly previousRequests: number;
 	readonly errorRate: number;
@@ -261,6 +263,16 @@ export const credentialLabels = Effect.gen(function* () {
 		SELECT auth_index, label FROM credentials WHERE auth_index IS NOT NULL`;
 	return new Map(
 		rows.flatMap((row) => (row.auth_index ? [[row.auth_index, row.label] as const] : [])),
+	);
+});
+
+/** The credential dimension joins back to a card by name: auth_index → name. */
+export const credentialNamesByAuthIndex = Effect.gen(function* () {
+	const sql = yield* SqlClient.SqlClient;
+	const rows = yield* sql<{ auth_index: string | null; name: string }>`
+		SELECT auth_index, name FROM credentials WHERE auth_index IS NOT NULL`;
+	return new Map(
+		rows.flatMap((row) => (row.auth_index ? [[row.auth_index, row.name] as const] : [])),
 	);
 });
 

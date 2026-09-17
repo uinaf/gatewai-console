@@ -1,10 +1,10 @@
-import { useRouter } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, useTransition } from "react";
 
 import { Buckets } from "#/components/pools/buckets";
 import { stamp } from "#/components/alerts/format";
-import { credits } from "#/components/pools/format";
+import { credentialAnchor, credits } from "#/components/pools/format";
 import { ProviderMark } from "#/components/pools/marks";
 import { QuotaMeter } from "#/components/pools/quota-meter";
 import {
@@ -32,7 +32,15 @@ function footnote(credential: Credential): string | null {
 	return null;
 }
 
-export function CredentialCard({ credential, now }: { credential: Credential; now: number }) {
+export function CredentialCard({
+	credential,
+	now,
+	landed,
+}: {
+	credential: Credential;
+	now: number;
+	landed: boolean;
+}) {
 	const router = useRouter();
 	const reset = useServerFn(resetCooldown);
 	const refresh = useServerFn(refreshCredential);
@@ -56,8 +64,10 @@ export function CredentialCard({ credential, now }: { credential: Credential; no
 
 	return (
 		<article
+			id={credentialAnchor(credential.name)}
 			className="card u-panel"
 			data-status={credential.status}
+			data-landed={landed || undefined}
 			aria-busy={pending || undefined}
 		>
 			<header className="card-head">
@@ -104,6 +114,9 @@ export function CredentialCard({ credential, now }: { credential: Credential; no
 					</p>
 				) : null}
 				<div className="card-actions">
+					<Link to="/ledger" search={{ credential: credential.name }} className="card-action">
+						history →
+					</Link>
 					{credential.status === "cooling" ? (
 						<button
 							type="button"
