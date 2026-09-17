@@ -52,8 +52,6 @@ export function CredentialCard({ credential, now }: { credential: Credential; no
 	const creditsLine = quota.credits
 		? `credits ${quota.credits.unlimited ? "unlimited" : credits(quota.credits.balance)}`
 		: null;
-	const meta: Array<string> = [];
-	if (quota.overage) meta.push(`overage ${quota.overage}`);
 	const note = footnote(credential);
 
 	return (
@@ -66,10 +64,6 @@ export function CredentialCard({ credential, now }: { credential: Credential; no
 				<ProviderMark provider={credential.provider} />
 				<div className="card-title">
 					<div className="card-name">{credential.label}</div>
-					<div className="card-tags">
-						{credential.plan ? <span className="u-tag">{credential.plan}</span> : null}
-						{credential.websockets ? <span className="u-tag">ws</span> : null}
-					</div>
 				</div>
 				<span className="card-status" data-status={credential.status}>
 					<span className={STATUS_DOT[credential.status]} />
@@ -91,16 +85,11 @@ export function CredentialCard({ credential, now }: { credential: Credential; no
 				</div>
 			) : null}
 
-			<div className="card-meta">
-				<span className="u-meta">
-					{creditsLine ? <span className="card-credits">{creditsLine}</span> : null}
-					{creditsLine && meta.length > 0 ? <span className="card-credits"> · </span> : null}
-					{meta.join(" · ")}
-				</span>
-				<span className="u-meta">
-					{credential.success} ok · {credential.failed} failed
-				</span>
-			</div>
+			{creditsLine ? (
+				<div className="card-meta">
+					<span className="u-meta card-credits">{creditsLine}</span>
+				</div>
+			) : null}
 
 			<Buckets buckets={credential.recentRequests} />
 

@@ -46,6 +46,15 @@ export const AuthFile = Schema.Struct({
 	quota: Schema.optionalKey(QuotaSnapshot),
 	model_quotas: Schema.optionalKey(Schema.NullOr(Schema.Record(Schema.String, QuotaSnapshot))),
 	websockets: Schema.optionalKey(Schema.Boolean),
+	// The proxy exposes a few id_token claims as plain fields, never the token.
+	id_token: Schema.optionalKey(
+		Schema.NullOr(
+			Schema.Struct({
+				chatgpt_account_id: Schema.optionalKey(Schema.String),
+				plan_type: Schema.optionalKey(Schema.String),
+			}),
+		),
+	),
 });
 export type AuthFile = typeof AuthFile.Type;
 

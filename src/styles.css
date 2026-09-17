@@ -60,14 +60,24 @@ body {
 	align-items: baseline;
 	font-size: var(--text-sm);
 }
-.u-topbar-actions::before {
-	content: "\200b";
-}
 .u-topbar-actions .u-dot {
 	align-self: center;
 }
+.stamp-word {
+	min-width: 5ch;
+}
+.stamp.u-tip::after {
+	top: calc(100% + 8px);
+	bottom: auto;
+	transform: translateX(-50%) translateY(-2px);
+}
+.stamp.u-tip:hover::after,
+.stamp.u-tip:focus-visible::after {
+	transform: translateX(-50%) translateY(0);
+}
+/* Row gap is 24px on the nav side; actions gap is 12px, so pad the other side to match. */
 .topbar-divider {
-	margin-right: var(--sp-2);
+	margin-right: calc(var(--sp-6) - var(--sp-3));
 }
 .stamp[data-stale] {
 	color: var(--warn);
@@ -190,12 +200,6 @@ body {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-}
-.card-tags {
-	display: flex;
-	align-items: center;
-	gap: var(--sp-2);
-	margin-top: var(--sp-1);
 }
 .card-status {
 	display: inline-flex;
@@ -450,9 +454,6 @@ body {
 		padding: var(--sp-4);
 		gap: var(--sp-3);
 	}
-	.card-tags {
-		display: none;
-	}
 	.meters {
 		gap: var(--sp-2);
 	}
@@ -535,8 +536,33 @@ body {
 .ledger-legend {
 	margin-top: var(--sp-4);
 }
-.u-legend i[data-provider] {
-	background: currentcolor;
+.u-legend i[data-series],
+.share i[data-series] {
+	background: var(--series);
+}
+[data-series="0"] {
+	--series: var(--viz-1);
+}
+[data-series="1"] {
+	--series: var(--viz-2);
+}
+[data-series="2"] {
+	--series: var(--viz-3);
+}
+[data-series="3"] {
+	--series: var(--viz-4);
+}
+[data-series="4"] {
+	--series: var(--viz-5);
+}
+[data-series="5"] {
+	--series: var(--viz-6);
+}
+[data-series="6"] {
+	--series: var(--viz-7);
+}
+[data-series="7"] {
+	--series: var(--viz-8);
 }
 .table-scroll {
 	overflow-x: auto;
@@ -555,23 +581,20 @@ body {
 	gap: 2px;
 	background: var(--bg);
 }
-.share i {
-	background: currentcolor;
-}
-.ledger-note,
 .ledger-empty {
 	margin-top: var(--sp-3);
 }
 .history-section {
 	margin-top: var(--sp-12);
-	border-top: 1px solid var(--border);
-	padding-top: var(--sp-8);
 }
-.history-section h2 {
-	margin-top: 6px;
+.history-section .page-head {
+	align-items: center;
 }
-.history-pick {
-	flex-wrap: wrap;
+.history-section .page-head .u-label {
+	font-size: var(--text-sm);
+}
+.history-pick .u-select {
+	width: 260px;
 }
 .history-plot {
 	display: flex;

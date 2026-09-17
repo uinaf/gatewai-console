@@ -109,7 +109,7 @@ function LedgerPage() {
 							defaultValue={search.to?.slice(0, 10) ?? view.range.to.slice(0, 10)}
 						/>
 					</label>
-					<button type="submit" className="u-btn u-btn--sm">
+					<button type="submit" className="u-btn">
 						apply
 					</button>
 				</form>
@@ -129,6 +129,7 @@ function LedgerPage() {
 						key={d}
 						to="/ledger"
 						search={(prev) => ({ ...prev, by: d === "client" ? undefined : d })}
+						activeOptions={{ explicitUndefined: true }}
 						aria-current={by === d ? "page" : undefined}
 					>
 						{d}
@@ -136,34 +137,32 @@ function LedgerPage() {
 				))}
 			</nav>
 			<Breakdown by={view.by} rows={view.rows} />
-			<p className="u-meta ledger-note">
-				unknown api keys show as a 16-char fingerprint. aggregates only · raw records stay on{" "}
-				{view.host}.
-			</p>
 
 			<section className="history-section">
 				<div className="page-head">
-					<div>
-						<span className="u-label">quota history</span>
-						<h2>
-							{view.credentials.find((c) => c.name === view.credential)?.label ??
-								"no credentials yet"}
-						</h2>
-					</div>
+					<span className="u-label">quota history</span>
 					{view.credentials.length > 0 ? (
-						<nav className="u-segmented history-pick" aria-label="credential">
-							{view.credentials.map((c) => (
-								<Link
-									key={c.name}
-									to="/ledger"
-									search={(prev) => ({ ...prev, credential: c.name })}
-									aria-current={view.credential === c.name ? "true" : undefined}
-								>
-									{c.provider} · {c.label}
-								</Link>
-							))}
-						</nav>
-					) : null}
+						<label className="history-pick">
+							<span className="visually-hidden">credential</span>
+							<select
+								className="u-select"
+								value={view.credential ?? ""}
+								onChange={(event) =>
+									void navigate({
+										search: (prev) => ({ ...prev, credential: event.target.value }),
+									})
+								}
+							>
+								{view.credentials.map((c) => (
+									<option key={c.name} value={c.name}>
+										{c.provider} · {c.label}
+									</option>
+								))}
+							</select>
+						</label>
+					) : (
+						<span className="u-meta">no credentials yet</span>
+					)}
 				</div>
 				<QuotaHistory points={view.history} range={view.range} fetchedAt={view.fetchedAt} />
 			</section>

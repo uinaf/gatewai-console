@@ -778,7 +778,11 @@
 			"success": 153,
 			"type": "codex",
 			"unavailable": false,
-			"websockets": true
+			"websockets": true,
+			"id_token": {
+				"chatgpt_account_id": "00000000-0000-4000-8000-000000000001",
+				"plan_type": "pro"
+			}
 		},
 		{
 			"account_type": "oauth",
@@ -1006,7 +1010,11 @@
 			"success": 163,
 			"type": "codex",
 			"unavailable": false,
-			"websockets": true
+			"websockets": true,
+			"id_token": {
+				"chatgpt_account_id": "00000000-0000-4000-8000-000000000002",
+				"plan_type": "pro"
+			}
 		},
 		{
 			"account_type": "oauth",

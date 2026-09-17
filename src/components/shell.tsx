@@ -15,12 +15,19 @@ function Stamp({ observedAt, serverNow, host }: StampProps & { host?: string }) 
 	const now = useNow(serverNow);
 	const observed = observedAt === null ? Number.NaN : Date.parse(observedAt);
 	const stale = !Number.isFinite(observed) || now - observed > STALE_AFTER_MS;
+	// A fixed word keeps the topbar width constant; the ticking detail lives in the tooltip.
+	const detail = `observed ${ago(observedAt, now)}`;
 	return (
-		<span className="stamp" data-stale={stale || undefined}>
-			<span className={stale ? "u-dot u-dot--warn" : "u-dot u-dot--ok"} />
+		<span
+			className="stamp u-tip"
+			data-stale={stale || undefined}
+			data-tip={detail}
+			tabIndex={0}
+			aria-label={`${stale ? "stale" : "live"}, ${detail}`}
+		>
+			<span className={stale ? "u-dot u-dot--warn" : "u-dot u-dot--ok"} aria-hidden="true" />
 			{host ? `${host} · ` : ""}
-			{stale ? "stale · " : ""}
-			{host ? ago(observedAt, now) : `observed ${ago(observedAt, now)}`}
+			<span className="stamp-word">{stale ? "stale" : "live"}</span>
 		</span>
 	);
 }

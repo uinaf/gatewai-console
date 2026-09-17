@@ -7,7 +7,7 @@ import type { AuthFile } from "#/server/management/schema";
 // (`Additional-<Name>`) are noise for the operator and are dropped.
 // xAI sends none.
 
-type WindowStatus = "allowed" | "limited" | "rejected" | "unknown";
+export type WindowStatus = "allowed" | "limited" | "rejected" | "unknown";
 
 export interface QuotaWindow {
 	readonly label: string;

@@ -88,18 +88,44 @@ const xaiBilling = (creditUsagePercent?: number) => ({
 	},
 });
 
+const codexUsage = (usedPercent: number) => ({
+	status: 200,
+	body: {
+		status_code: 200,
+		body: JSON.stringify({
+			user_id: "user-redacted",
+			email: "codex-one@example.com",
+			plan_type: "pro",
+			rate_limit: {
+				allowed: true,
+				limit_reached: false,
+				primary_window: {
+					used_percent: usedPercent,
+					limit_window_seconds: 604_800,
+					reset_after_seconds: 165_820,
+					reset_at: 1_789_808_978,
+				},
+				secondary_window: null,
+			},
+			additional_rate_limits: [{ limit_name: "GPT-5.3-Codex-Spark" }],
+		}),
+	},
+});
+
 test("auth-files retries a transient failure and normalises the pools", async () => {
 	const { seen, layer } = scripted([
 		{ status: 503 },
 		{ status: 200, body: authFiles },
 		xaiBilling(),
 		xaiBilling(1),
+		codexUsage(0),
+		codexUsage(0),
 	]);
 	const exit = await run(layer, (api) => api.pools);
 	expect(exit._tag).toBe("Success");
 	if (exit._tag !== "Success") return;
 	expect(exit.value.credentials).toHaveLength(7);
-	expect(seen).toHaveLength(4);
+	expect(seen).toHaveLength(6);
 	expect(seen[0]).toMatchObject({
 		method: "GET",
 		url: "http://proxy.test/v0/management/auth-files",
@@ -116,7 +142,7 @@ test("xai quota comes from grok billing through api-call; a failed read leaves n
 	const exit = await run(layer, (api) => api.pools);
 	expect(exit._tag).toBe("Success");
 	if (exit._tag !== "Success") return;
-	const calls = seen.filter((s) => s.url.endsWith("/api-call"));
+	const calls = seen.filter((s) => s.url.endsWith("/api-call") && s.body.includes("grok.com"));
 	expect(calls).toHaveLength(2);
 	expect(calls[0]?.method).toBe("POST");
 	expect(calls[0]?.body).toContain("cli-chat-proxy.grok.com/v1/billing?format=credits");
@@ -125,6 +151,31 @@ test("xai quota comes from grok billing through api-call; a failed read leaves n
 	const windows = xai.map((c) => c.quota.windows.map((w) => [w.label, w.usedPercent, w.resetsAt]));
 	expect(windows).toContainEqual([["weekly", 1, "2026-09-20T17:40:10.000Z"]]);
 	expect(windows).toContainEqual([]);
+});
+
+test("codex quota comes from the chatgpt usage endpoint through api-call; a failed read keeps the header windows", async () => {
+	const { seen, layer } = scripted([
+		{ status: 200, body: authFiles },
+		xaiBilling(),
+		xaiBilling(),
+		codexUsage(89),
+		{ status: 502 },
+	]);
+	const exit = await run(layer, (api) => api.pools);
+	expect(exit._tag).toBe("Success");
+	if (exit._tag !== "Success") return;
+	const calls = seen.filter((s) => s.url.endsWith("/api-call") && s.body.includes("wham/usage"));
+	expect(calls).toHaveLength(2);
+	expect(calls[0]?.body).toContain('"Chatgpt-Account-Id":"00000000-0000-4000-8000-000000000001"');
+	expect(calls[0]?.body).toContain("$TOKEN$");
+	const codex = exit.value.credentials.filter((c) => c.provider === "codex");
+	const windows = codex.map((c) =>
+		c.quota.windows.map((w) => [w.label, w.usedPercent, w.resetsAt]),
+	);
+	expect(windows).toContainEqual([["weekly", 89, "2026-09-19T09:09:38.000Z"]]);
+	const fallback = codex.find((c) => c.name === "codex-two@example.com.json");
+	expect(fallback?.quota.windows.length).toBeGreaterThan(0);
+	expect(fallback?.quota.windows.map((w) => w.usedPercent)).not.toContain(89);
 });
 
 test("usage-queue pops once and never retries", async () => {

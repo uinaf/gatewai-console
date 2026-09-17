@@ -34,7 +34,6 @@ function AlertsPage() {
 		);
 	}
 	const firing = view.rules.flatMap((rule) => rule.firing.map((f) => ({ rule, ...f })));
-	const clear = view.rules.filter((rule) => rule.firing.length === 0);
 	const pages = Math.max(1, Math.ceil(view.total / PAGE_SIZE));
 	const nowIso = new Date(now).toISOString();
 
@@ -60,9 +59,7 @@ function AlertsPage() {
 										<span className="u-dot u-dot--error" />
 										{f.rule.id}
 									</div>
-									<p className="u-meta firing-detail">
-										{f.rule.condition} · scope {f.rule.scope} · {f.detail}
-									</p>
+									<p className="u-meta firing-detail">{f.detail}</p>
 								</div>
 								<span className="u-meta firing-since">since {stamp(f.since)}</span>
 							</div>
@@ -72,10 +69,7 @@ function AlertsPage() {
 			</section>
 
 			<section className="alerts-block">
-				<div className="page-head">
-					<span className="u-label">clear rules</span>
-					<span className="u-meta">read-only · edit alerts.json on {view.host}</span>
-				</div>
+				<span className="u-label">rules</span>
 				<div className="table-scroll">
 					<table className="u-table rules-table">
 						<thead>
@@ -83,17 +77,23 @@ function AlertsPage() {
 								<th>rule</th>
 								<th>scope</th>
 								<th>condition</th>
-								<th data-num>clear since</th>
+								<th data-num>state</th>
 								<th data-num>last fired</th>
 							</tr>
 						</thead>
 						<tbody>
-							{clear.map((rule) => (
+							{view.rules.map((rule) => (
 								<tr key={rule.id}>
 									<td>{rule.id}</td>
 									<td>{rule.scope}</td>
 									<td>{rule.condition}</td>
-									<td data-num>{stamp(rule.clearSince)}</td>
+									<td data-num>
+										{rule.firing.length > 0
+											? "firing"
+											: rule.clearSince
+												? `clear since ${stamp(rule.clearSince)}`
+												: "clear"}
+									</td>
 									<td data-num>{stamp(rule.lastFired)}</td>
 								</tr>
 							))}

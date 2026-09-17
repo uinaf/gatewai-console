@@ -1,3 +1,4 @@
+import { stamp } from "#/components/alerts/format";
 import type { Rule } from "#/server/alerts/rules";
 import type { Credential } from "#/server/management/credential";
 
@@ -96,7 +97,13 @@ export const evaluate = (
 									subject: credential.name,
 									what: "cooldown",
 									detail: cooldown
-										? `${credential.label} cooling${cooldown.model ? ` for ${cooldown.model}` : ""}${cooldown.until ? ` until ${cooldown.until.slice(0, 16).replace("T", " ")}z` : ""}`
+										? [
+												credential.label,
+												cooldown.model,
+												cooldown.until ? `until ${stamp(cooldown.until)}` : null,
+											]
+												.filter(Boolean)
+												.join(" · ")
 										: `${credential.label} not cooling`,
 									remaining: null,
 								},

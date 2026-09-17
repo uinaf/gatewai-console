@@ -21,6 +21,12 @@ import {
 	HttpClientResponse,
 } from "effect/unstable/http";
 
+import {
+	CODEX_USAGE_URL,
+	CodexUsage,
+	codexHeaders,
+	withCodexUsage,
+} from "#/server/management/codex";
 import { type Pools, poolsOf } from "#/server/management/credential";
 import {
 	XAI_BILLING_URL,
@@ -45,6 +51,7 @@ import {
 // token substituted for `$TOKEN$`. The body comes back as a string.
 const ApiCallResponse = Schema.Struct({ status_code: Schema.Number, body: Schema.String });
 const decodeXaiBilling = Schema.decodeUnknownOption(XaiBilling);
+const decodeCodexUsage = Schema.decodeUnknownOption(CodexUsage);
 
 const decodeUsageRecord = Schema.decodeUnknownResult(UsageRecord);
 
@@ -272,51 +279,89 @@ export class ManagementApi extends Context.Service<
 					),
 			);
 
-			// xAI quota lives on grok's billing endpoint, reached through the proxy's
-			// api-call with the credential's token. A failed or malformed read leaves
-			// that credential without windows; it never fails the pools read.
-			const xaiBilling = Effect.fn("ManagementApi.xaiBilling")((authIndex: string) =>
+			// Provider usage endpoints reached through the proxy's api-call, which
+			// substitutes the credential's own token. A failed or malformed read
+			// leaves that credential without windows; it never fails the pools read.
+			// Bodies are never logged: they carry account identifiers.
+			const apiCall = <A>(
+				name: string,
+				authIndex: string,
+				url: string,
+				header: Readonly<Record<string, string>>,
+				decode: (body: unknown) => { _tag: "Some"; value: A } | { _tag: "None" },
+			) =>
 				consume((client) =>
 					HttpClientRequest.post("/api-call").pipe(
-						HttpClientRequest.bodyJsonUnsafe({
-							auth_index: authIndex,
-							method: "GET",
-							url: XAI_BILLING_URL,
-							header: XAI_HEADERS,
-						}),
+						HttpClientRequest.bodyJsonUnsafe({ auth_index: authIndex, method: "GET", url, header }),
 						client.execute,
 						decodeWith(ApiCallResponse),
 					),
 				).pipe(
-					Effect.map((reply): XaiBillingConfig | undefined => {
+					Effect.map((reply): A | undefined => {
 						if (reply.status_code < 200 || reply.status_code >= 300) return undefined;
 						try {
-							const parsed = decodeXaiBilling(JSON.parse(reply.body));
-							return parsed._tag === "Some" ? parsed.value.config : undefined;
+							const parsed = decode(JSON.parse(reply.body));
+							return parsed._tag === "Some" ? parsed.value : undefined;
 						} catch {
 							return undefined;
 						}
 					}),
 					Effect.catch((error) =>
-						Effect.logWarning("xai billing unavailable", error.message).pipe(Effect.as(undefined)),
+						Effect.logWarning(`${name} unavailable`, error.message).pipe(Effect.as(undefined)),
 					),
-				),
-			);
+					Effect.withSpan(`ManagementApi.${name}`),
+				);
+
+			const xaiBilling = (authIndex: string) =>
+				apiCall("xaiBilling", authIndex, XAI_BILLING_URL, XAI_HEADERS, (body) => {
+					const parsed = decodeXaiBilling(body);
+					return parsed._tag === "Some"
+						? { _tag: "Some", value: parsed.value.config as XaiBillingConfig | undefined }
+						: { _tag: "None" };
+				});
+
+			const codexUsage = (authIndex: string, accountId: string) =>
+				apiCall(
+					"codexUsage",
+					authIndex,
+					CODEX_USAGE_URL,
+					codexHeaders(accountId),
+					decodeCodexUsage,
+				);
 
 			const pools = Effect.gen(function* () {
-				const base = poolsOf(yield* authFiles);
+				const files = yield* authFiles;
+				const base = poolsOf(files);
+				const observedAt = new Date().toISOString();
 				const xai = base.credentials.filter((credential) => credential.provider === "xai");
-				if (xai.length === 0) return base;
-				const configs = yield* Effect.forEach(
-					xai,
-					(credential) =>
-						Effect.map(
-							xaiBilling(credential.authIndex),
-							(config) => [credential.authIndex, config] as const,
-						),
-					{ concurrency: 4 },
+				const codex = files.files.flatMap((file) => {
+					const accountId = file.id_token?.chatgpt_account_id;
+					return file.provider === "codex" && accountId
+						? [{ authIndex: file.auth_index, accountId }]
+						: [];
+				});
+				const [billing, usage] = yield* Effect.all([
+					Effect.forEach(
+						xai,
+						(credential) =>
+							Effect.map(
+								xaiBilling(credential.authIndex),
+								(config) => [credential.authIndex, config] as const,
+							),
+						{ concurrency: 4 },
+					),
+					Effect.forEach(
+						codex,
+						({ authIndex, accountId }) =>
+							Effect.map(codexUsage(authIndex, accountId), (read) => [authIndex, read] as const),
+						{ concurrency: 4 },
+					),
+				]);
+				return withCodexUsage(
+					withXaiBilling(base, new Map(billing), observedAt),
+					new Map(usage),
+					observedAt,
 				);
-				return withXaiBilling(base, new Map(configs), new Date().toISOString());
 			}).pipe(Effect.withSpan("ManagementApi.pools"));
 
 			return ManagementApi.of({

@@ -1,8 +1,9 @@
 import { compact, count, delta, millis, percent } from "#/components/ledger/format";
 import type { BreakdownRow, Dimension } from "#/server/ledger/queries";
 
-// Model share is a stacked bar per row; segments carry the provider hue and a
-// title, and the legend above names every model so identity is never colour alone.
+// Model share is a stacked bar per row. Each model takes the next viz series
+// colour in legend order (the palette wraps after five), segments carry a
+// title, and the legend names every model so identity is never colour alone.
 
 const HEADINGS: Record<Dimension, string> = {
 	client: "client",
@@ -15,13 +16,14 @@ export function Breakdown({ by, rows }: { by: Dimension; rows: ReadonlyArray<Bre
 	// Keyed by model and provider: the same model id can be served by two providers.
 	const models = new Map<string, { model: string; provider: string }>();
 	for (const row of rows) for (const s of row.share) models.set(`${s.provider}/${s.model}`, s);
+	const seriesOf = new Map([...models.keys()].map((id, index) => [id, index % 5]));
 	if (rows.length === 0) return <p className="u-meta ledger-empty">no requests in range.</p>;
 	return (
 		<>
 			<div className="u-legend ledger-legend">
 				{[...models].map(([id, { model, provider }]) => (
 					<span key={id}>
-						<i data-provider={provider} />
+						<i data-series={seriesOf.get(id)} />
 						{model}
 						{[...models.values()].filter((m) => m.model === model).length > 1
 							? ` (${provider})`
@@ -81,7 +83,7 @@ export function Breakdown({ by, rows }: { by: Dimension; rows: ReadonlyArray<Bre
 											return (
 												<i
 													key={`${s.provider}/${s.model}`}
-													data-provider={s.provider}
+													data-series={seriesOf.get(`${s.provider}/${s.model}`)}
 													style={{ width }}
 													title={`${s.model} · ${percent(s.share, 0)}`}
 												/>

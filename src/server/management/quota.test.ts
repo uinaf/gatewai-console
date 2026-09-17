@@ -14,7 +14,8 @@ const byName = (name: string) => {
 
 test("fixture decodes without token material", () => {
 	expect(files.files).toHaveLength(7);
-	expect(JSON.stringify(files)).not.toMatch(/id_token|access_token|refresh_token/);
+	// `id_token` is a claims object on the wire, never the token string.
+	expect(JSON.stringify(files)).not.toMatch(/access_token|refresh_token|"id_token":"/);
 });
 
 test("anthropic unified windows fold into 5-hour, weekly, and the flagship weekly", () => {
