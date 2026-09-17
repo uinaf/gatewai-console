@@ -20,13 +20,21 @@ export function QuotaMeter({
 	secondary,
 }: QuotaMeterProps) {
 	const width = `${usedPercent}%`;
+	// Requests fail now: say so in text and in the name, not only in the fill colour.
+	const flagged = status === "limited" || status === "rejected";
 	return (
 		<div className="meter" data-secondary={secondary || undefined} data-status={status}>
 			<span className="meter-label">{label}</span>
-			<span className="meter-track" role="img" aria-label={`${label} ${usedPercent}% used`}>
+			<span
+				className="meter-track"
+				role="img"
+				aria-label={`${label} ${usedPercent}% used${flagged ? `, ${status}` : ""}`}
+			>
 				<span className="meter-fill" data-provider={provider} style={{ width }} />
 			</span>
-			<span className="meter-value">{usedPercent}%</span>
+			<span className="meter-value">
+				{usedPercent}%{flagged ? <span className="meter-flag"> · {status}</span> : null}
+			</span>
 			<span className="meter-reset">{resetsIn(resetsAt, now)}</span>
 		</div>
 	);

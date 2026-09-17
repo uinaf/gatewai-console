@@ -226,7 +226,7 @@ body {
 }
 .meter {
 	display: grid;
-	grid-template-columns: 152px 1fr 40px 112px;
+	grid-template-columns: 152px 1fr auto 112px;
 	align-items: center;
 	gap: var(--sp-3);
 }
@@ -258,6 +258,12 @@ body {
 	font-size: var(--text-sm);
 	color: var(--fg);
 	text-align: right;
+	min-width: 40px;
+	white-space: nowrap;
+}
+.meter-flag {
+	color: var(--error);
+	font-size: var(--text-xs);
 }
 .meter-reset {
 	font-size: var(--text-xs);

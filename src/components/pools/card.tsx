@@ -25,7 +25,12 @@ const STATUS_DOT: Record<Credential["status"], string> = {
 function footnote(credential: Credential): string | null {
 	const cooldown = credential.cooldowns[0];
 	if (credential.status === "cooling" && cooldown) {
-		return cooldown.until ? `cooldown until ${stamp(cooldown.until)}.` : "cooling down.";
+		const parts = [
+			cooldown.model ? `cooldown on ${cooldown.model}` : "cooldown",
+			cooldown.reason,
+			cooldown.until ? `until ${stamp(cooldown.until)}` : null,
+		].filter(Boolean);
+		return `${parts.join(" · ")}.`;
 	}
 	if (credential.status === "disabled") return "disabled. requests route to the other accounts.";
 	if (credential.status === "error") return credential.statusMessage ?? "gateway reports an error.";
