@@ -20,6 +20,10 @@ test("an inverted or unparsable custom range falls back to the 7d preset", () =>
 		now,
 	);
 	expect(rejected.customRejected).toBe(true);
+	expect(
+		resolveRange({ preset: "custom", by: "client", from: "", to: "" }, now).customRejected,
+	).toBe(true);
+	expect(resolveRange({ preset: "custom", by: "client" }, now).customRejected).toBe(false);
 	const fallback = resolveRange({ preset: "7d", by: "client" }, now);
 	expect(fallback.customRejected).toBe(false);
 	expect(rejected).toEqual({ ...fallback, customRejected: true });

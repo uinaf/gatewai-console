@@ -109,7 +109,7 @@ const codexWindows = (signals: Signals): ReadonlyArray<QuotaWindow> =>
 const flagshipOf = (file: AuthFile): string => {
 	const owner = Object.entries(file.model_quotas ?? {}).find(
 		([, snapshot]) =>
-			snapshot?.signals?.["Anthropic-Ratelimit-Unified-7d_oi-Utilization"] !== undefined,
+			finite(snapshot?.signals?.["Anthropic-Ratelimit-Unified-7d_oi-Utilization"]) !== null,
 	);
 	const match = owner ? /^claude-([a-z]+)/.exec(owner[0]) : null;
 	return match?.[1] ?? "fable";
