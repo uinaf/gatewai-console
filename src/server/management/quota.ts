@@ -107,12 +107,10 @@ const codexWindows = (signals: Signals): ReadonlyArray<QuotaWindow> =>
 // window owns it. Key order is not a signal; without such a snapshot the
 // current flagship is assumed.
 const flagshipOf = (file: AuthFile): string => {
-	const entries = Object.entries(file.model_quotas ?? {});
-	const owner =
-		entries.find(
-			([, snapshot]) =>
-				snapshot?.signals?.["Anthropic-Ratelimit-Unified-7d_oi-Utilization"] !== undefined,
-		) ?? entries[0];
+	const owner = Object.entries(file.model_quotas ?? {}).find(
+		([, snapshot]) =>
+			snapshot?.signals?.["Anthropic-Ratelimit-Unified-7d_oi-Utilization"] !== undefined,
+	);
 	const match = owner ? /^claude-([a-z]+)/.exec(owner[0]) : null;
 	return match?.[1] ?? "fable";
 };
