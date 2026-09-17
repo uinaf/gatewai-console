@@ -134,16 +134,13 @@ body {
 	color: var(--fg);
 }
 .pools-sort {
-	display: inline-flex;
-	align-items: center;
-	gap: var(--sp-2);
 	margin-left: auto;
 }
-/* The segmented links beside it are 26px; the design-system select is 32px. */
-.pools-sort .u-select {
-	width: 150px;
-	height: 26px;
-	font-size: var(--text-xs);
+.pools-sort a {
+	white-space: nowrap;
+}
+.sort-dir {
+	margin-left: var(--sp-1);
 }
 .pools-empty {
 	margin-top: var(--sp-6);

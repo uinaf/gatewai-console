@@ -19,10 +19,16 @@ import {
 const SORTS = ["remaining", "name", "requests"] as const;
 type Sort = (typeof SORTS)[number];
 
+type Dir = "asc" | "desc";
+
 interface Search {
 	readonly provider?: string;
 	readonly sort?: Sort;
+	readonly dir?: Dir;
 }
+
+// The natural direction per key; the search param carries only a flip.
+const DEFAULT_DIR: Record<Sort, Dir> = { remaining: "asc", name: "asc", requests: "desc" };
 
 const REFRESH_MS = 30_000;
 
@@ -34,6 +40,7 @@ export const Route = createFileRoute("/")({
 		...(SORTS.includes(search.sort as Sort) && search.sort !== "remaining"
 			? { sort: search.sort as Sort }
 			: {}),
+		...(search.dir === "asc" || search.dir === "desc" ? { dir: search.dir } : {}),
 	}),
 	loader: () => loadPools(),
 	component: PoolsPage,
@@ -47,19 +54,19 @@ const remaining = (credential: Credential) => {
 const comparators: Record<Sort, (a: Credential, b: Credential) => number> = {
 	remaining: (a, b) => remaining(a) - remaining(b) || a.label.localeCompare(b.label),
 	name: (a, b) => a.label.localeCompare(b.label),
-	requests: (a, b) => requestsLastHour(b) - requestsLastHour(a) || a.label.localeCompare(b.label),
+	requests: (a, b) => requestsLastHour(a) - requestsLastHour(b) || a.label.localeCompare(b.label),
 };
 
 function PoolsPage() {
 	const view = Route.useLoaderData();
 	const search = Route.useSearch();
-	const navigate = Route.useNavigate();
 	const now = useNow(Date.parse(view.fetchedAt));
 	// Client-side navigation does not re-evaluate `:target`, so the landed card is marked from the hash.
 	const hash = useHash();
 	useAutoRefresh(REFRESH_MS);
 
 	const sort: Sort = search.sort ?? "remaining";
+	const dir: Dir = search.dir ?? DEFAULT_DIR[sort];
 	const stamp = {
 		observedAt: view.result.ok ? view.result.pools.observedAt : null,
 		serverNow: now,
@@ -78,7 +85,7 @@ function PoolsPage() {
 	const active = search.provider ?? "all";
 	const shown = credentials
 		.filter((credential) => active === "all" || credential.provider === active)
-		.sort(comparators[sort]);
+		.sort((a, b) => (dir === "asc" ? 1 : -1) * comparators[sort](a, b));
 
 	return (
 		<Shell host={view.host} operator={view.operator} stamp={stamp} title="pools">
@@ -97,26 +104,33 @@ function PoolsPage() {
 						</Link>
 					))}
 				</nav>
-				<label className="pools-sort">
-					<span className="visually-hidden">sort</span>
-					<select
-						className="u-select"
-						value={sort}
-						onChange={(event) =>
-							void navigate({
-								search: (prev) => ({
+				<nav className="u-segmented pools-sort" aria-label="sort">
+					{SORTS.map((key) => {
+						const active = key === sort;
+						// Clicking the active key flips it; a flip back to the natural direction drops the param.
+						const next: Dir = active ? (dir === "asc" ? "desc" : "asc") : DEFAULT_DIR[key];
+						return (
+							<Link
+								key={key}
+								to="/"
+								search={(prev) => ({
 									...prev,
-									sort:
-										event.target.value === "remaining" ? undefined : (event.target.value as Sort),
-								}),
-							})
-						}
-					>
-						<option value="remaining">remaining ↑</option>
-						<option value="name">name</option>
-						<option value="requests">requests</option>
-					</select>
-				</label>
+									sort: key === "remaining" ? undefined : key,
+									dir: next === DEFAULT_DIR[key] ? undefined : next,
+								})}
+								aria-current={active ? "true" : undefined}
+								aria-label={`sort by ${key}, ${next}ending`}
+							>
+								{key}
+								{active ? (
+									<span className="sort-dir" aria-hidden="true">
+										{dir === "asc" ? "↑" : "↓"}
+									</span>
+								) : null}
+							</Link>
+						);
+					})}
+				</nav>
 			</div>
 
 			{shown.length === 0 ? (
