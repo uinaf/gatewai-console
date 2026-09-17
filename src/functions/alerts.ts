@@ -15,6 +15,9 @@ export interface RuleView {
 	readonly condition: string;
 	readonly delivers: boolean;
 	readonly firing: ReadonlyArray<{ subject: string; detail: string; since: string }>;
+	/** Latest evaluated detail per subject for clear rows, e.g. "weekly remaining 41% on x"; the nearest to firing first. */
+	readonly clear: ReadonlyArray<{ subject: string; detail: string }>;
+	/** Clear since the last incident ended; null while firing or when the rule never fired. */
 	readonly clearSince: string | null;
 	readonly lastFired: string | null;
 }
@@ -54,6 +57,12 @@ const pageOf = (input: unknown): { page: number } => {
 const latest = (values: ReadonlyArray<string | null>): string | null =>
 	values.reduce<string | null>((best, v) => (v && (!best || v > best) ? v : best), null);
 
+/** The first percentage in a detail, so "weekly remaining 41% on x" sorts before 63%. */
+const percentOf = (detail: string): number => {
+	const match = /(\d+)%/.exec(detail);
+	return match ? Number(match[1]) : Number.POSITIVE_INFINITY;
+};
+
 export const loadAlerts = createServerFn({ method: "GET" })
 	.validator(pageOf)
 	.handler(({ data }): Promise<AlertsView> =>
@@ -77,6 +86,15 @@ export const loadAlerts = createServerFn({ method: "GET" })
 						rules: rules.map((rule): RuleView => {
 							const own = byRule.get(rule.id) ?? [];
 							const firing = own.filter((s) => s.firing === 1);
+							const lastFired = latest(own.map((s) => s.last_fired));
+							const clear = own
+								.flatMap((s) =>
+									s.firing === 0 && s.detail ? [{ subject: s.subject, detail: s.detail }] : [],
+								)
+								.sort(
+									(a, b) =>
+										percentOf(a.detail) - percentOf(b.detail) || a.subject.localeCompare(b.subject),
+								);
 							return {
 								id: rule.id,
 								scope: scopeLabel(rule),
@@ -87,8 +105,10 @@ export const loadAlerts = createServerFn({ method: "GET" })
 									detail: s.detail ?? "",
 									since: s.since ?? fetchedAt,
 								})),
-								clearSince: firing.length > 0 ? null : latest(own.map((s) => s.since)),
-								lastFired: latest(own.map((s) => s.last_fired)),
+								clear,
+								clearSince:
+									firing.length > 0 || lastFired === null ? null : latest(own.map((s) => s.since)),
+								lastFired,
 							};
 						}),
 						incidents: rows,

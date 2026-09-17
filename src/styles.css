@@ -752,6 +752,14 @@ body {
 .incidents-table {
 	margin-top: var(--sp-2);
 }
+.rules-table .nowrap {
+	white-space: nowrap;
+}
+/* Dashed to echo the firing block; the padding keeps the rule column aligned with clear rows. */
+.rules-table tr[data-firing] td:first-child {
+	border-left: 2px dashed var(--error);
+	padding-left: calc(var(--sp-4) - 2px);
+}
 .incident-what {
 	display: inline-flex;
 	align-items: center;

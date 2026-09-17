@@ -9,7 +9,7 @@ import { expect, test } from "vitest";
 import { evaluate } from "#/server/alerts/evaluate";
 import { AlertRules } from "#/server/alerts/rules";
 import { runAlerts } from "#/server/alerts/run";
-import { listIncidents, readStates } from "#/server/alerts/store";
+import { applyCondition, listIncidents, readStates } from "#/server/alerts/store";
 import { Database } from "#/server/database";
 import { writeCollectorState } from "#/server/ledger/store";
 import { type Credential, poolsOf } from "#/server/management/credential";
@@ -331,4 +331,32 @@ test("a gateway outage still evaluates the stalled rule and leaves credential su
 		[rule.id, 1],
 		["stalled", 1],
 	]);
+});
+
+test("a clear rule keeps its latest evaluated detail", async () => {
+	const dir = mkdtempSync(join(tmpdir(), "gatewai-alerts-"));
+	const env = Database.pipe(
+		Layer.provideMerge(
+			ConfigProvider.layer(ConfigProvider.fromUnknown({ GATEWAI_DB_PATH: join(dir, "d.sqlite") })),
+		),
+	);
+	const condition = (detail: string) => ({
+		ruleId: rule.id,
+		subject: codex.name,
+		what: "weekly low",
+		detail,
+		remaining: null,
+	});
+	const states = await Effect.gen(function* () {
+		yield* applyCondition(condition("weekly remaining 41% on two"), false, "2026-09-16T00:00:00Z");
+		yield* applyCondition(condition("weekly remaining 37% on two"), false, "2026-09-16T00:01:00Z");
+		return yield* readStates;
+	}).pipe(Effect.provide(env), Effect.runPromise);
+	expect(states).toHaveLength(1);
+	expect(states[0]).toMatchObject({
+		firing: 0,
+		since: "2026-09-16T00:00:00Z",
+		last_fired: null,
+		detail: "weekly remaining 37% on two",
+	});
 });

@@ -77,26 +77,38 @@ function AlertsPage() {
 								<th>rule</th>
 								<th>scope</th>
 								<th>condition</th>
-								<th data-num>state</th>
-								<th data-num>last fired</th>
+								<th>now</th>
+								<th className="nowrap">last fired</th>
 							</tr>
 						</thead>
 						<tbody>
-							{view.rules.map((rule) => (
-								<tr key={rule.id}>
-									<td>{rule.id}</td>
-									<td>{rule.scope}</td>
-									<td>{rule.condition}</td>
-									<td data-num>
-										{rule.firing.length > 0
-											? "firing"
-											: rule.clearSince
-												? `clear since ${stamp(rule.clearSince)}`
-												: "clear"}
-									</td>
-									<td data-num>{stamp(rule.lastFired)}</td>
-								</tr>
-							))}
+							{view.rules.map((rule) => {
+								const [nearest, ...rest] = rule.clear;
+								return (
+									<tr key={rule.id} data-firing={rule.firing.length > 0 ? "" : undefined}>
+										<td>{rule.id}</td>
+										<td>{rule.scope}</td>
+										<td>{rule.condition}</td>
+										<td>
+											{rule.firing.length > 0 ? (
+												`firing · ${rule.firing[0]?.detail ?? ""}`
+											) : nearest ? (
+												<>
+													{nearest.detail}
+													{rest.length > 0 ? (
+														<span title={rest.map((c) => c.detail).join("\n")}>
+															{` · +${rest.length} more`}
+														</span>
+													) : null}
+												</>
+											) : (
+												"—"
+											)}
+										</td>
+										<td className="nowrap">{rule.lastFired ? stamp(rule.lastFired) : "—"}</td>
+									</tr>
+								);
+							})}
 						</tbody>
 					</table>
 				</div>

@@ -73,7 +73,7 @@ const applyConditionUnsafe = (
 				last_fired: null,
 				detail: condition.detail,
 			})}`;
-		} else if (firing) {
+		} else {
 			yield* sql`UPDATE alert_state SET detail = ${condition.detail}
 				WHERE rule_id = ${condition.ruleId} AND subject = ${condition.subject}`;
 		}
