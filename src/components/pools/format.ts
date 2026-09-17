@@ -1,6 +1,4 @@
 const pad = (n: number) => String(n).padStart(2, "0");
-const DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 
 /** "in 41m", "in 1h 12m", "in 2d 21h", or "now" once passed. */
 export const resetsIn = (iso: string | null, now: number): string => {
@@ -14,14 +12,6 @@ export const resetsIn = (iso: string | null, now: number): string => {
 	if (days > 0) return `in ${days}d ${pad(hours % 24)}h`;
 	if (hours > 0) return `in ${hours}h ${pad(minutes % 60)}m`;
 	return `in ${Math.max(1, minutes)}m`;
-};
-
-/** "sun 19 sep 07:00" in the viewer's zone. */
-export const calendar = (iso: string | null): string => {
-	if (!iso) return "";
-	const date = new Date(iso);
-	if (Number.isNaN(date.getTime())) return "";
-	return `${DAYS[date.getDay()]} ${date.getDate()} ${MONTHS[date.getMonth()]} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
 
 /** "12 s ago", "4m 12s ago", "2h ago". */

@@ -3,7 +3,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState, useTransition } from "react";
 
 import { Buckets } from "#/components/pools/buckets";
-import { calendar, credits } from "#/components/pools/format";
+import { stamp } from "#/components/alerts/format";
+import { credits } from "#/components/pools/format";
 import { ProviderMark } from "#/components/pools/marks";
 import { QuotaMeter } from "#/components/pools/quota-meter";
 import {
@@ -24,8 +25,7 @@ const STATUS_DOT: Record<Credential["status"], string> = {
 function footnote(credential: Credential): string | null {
 	const cooldown = credential.cooldowns[0];
 	if (credential.status === "cooling" && cooldown) {
-		// Rendered in the viewer's zone; see card-note's suppressHydrationWarning.
-		return cooldown.until ? `cooldown until ${calendar(cooldown.until)}.` : "cooling down.";
+		return cooldown.until ? `cooldown until ${stamp(cooldown.until)}.` : "cooling down.";
 	}
 	if (credential.status === "disabled") return "disabled. requests route to the other accounts.";
 	if (credential.status === "error") return credential.statusMessage ?? "gateway reports an error.";
@@ -99,8 +99,6 @@ export function CredentialCard({ credential, now }: { credential: Credential; no
 						className="u-meta card-note"
 						role={failure ? "alert" : undefined}
 						data-failure={failure ? "" : undefined}
-						// The cooldown date is formatted in the viewer's zone, which the server cannot know.
-						suppressHydrationWarning
 					>
 						{failure ?? note}
 					</p>

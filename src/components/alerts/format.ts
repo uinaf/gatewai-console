@@ -1,12 +1,13 @@
 const pad = (n: number) => String(n).padStart(2, "0");
+const DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 
-/** "16 sep 09:12" in UTC, so server and client render the same text. */
+/** "tue 16 sep 09:12z", always UTC. */
 export const stamp = (iso: string | null): string => {
 	if (!iso) return "never";
 	const d = new Date(iso);
 	if (Number.isNaN(d.getTime())) return "never";
-	return `${pad(d.getUTCDate())} ${MONTHS[d.getUTCMonth()]} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+	return `${DAYS[d.getUTCDay()]} ${pad(d.getUTCDate())} ${MONTHS[d.getUTCMonth()]} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}z`;
 };
 
 /** "3h 27m", "2d 09h", "8m". */

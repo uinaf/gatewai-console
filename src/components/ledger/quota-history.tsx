@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { stamp } from "#/components/alerts/format";
 import { dayTick, hourTick } from "#/components/ledger/format";
 import type { QuotaPoint, Range } from "#/server/ledger/queries";
 
@@ -150,7 +151,7 @@ export function QuotaHistory({
 					</div>
 					{hovered ? (
 						<div className="history-tip" role="status">
-							<span className="u-meta">{hovered.slice(0, 16).replace("T", " ")}z</span>
+							<span className="u-meta">{stamp(hovered)}</span>
 							{readout.map((r) => (
 								<span key={r.label}>
 									<span
@@ -194,7 +195,7 @@ export function QuotaHistory({
 					<tbody>
 						{points.map((p) => (
 							<tr key={`${p.at}-${p.label}`}>
-								<td>{p.at.slice(0, 16).replace("T", " ")}z</td>
+								<td>{stamp(p.at)}</td>
 								<td>{p.label}</td>
 								<td data-num>{p.usedPercent}%</td>
 								<td>{p.reset ? "yes" : ""}</td>
