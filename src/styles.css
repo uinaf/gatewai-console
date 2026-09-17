@@ -330,6 +330,11 @@ body {
 		pointer-events: auto;
 	}
 }
+/* An action in flight keeps its row visible even after the pointer leaves the card. */
+.card[aria-busy="true"] .card-actions {
+	opacity: 1;
+	pointer-events: auto;
+}
 .card-note {
 	line-height: 1.6;
 	max-width: 42ch;
@@ -398,9 +403,8 @@ a.card-action {
 	color: var(--fg);
 	text-decoration: underline;
 }
-.card-action:disabled {
+.card-actions [aria-disabled="true"] {
 	opacity: 0.45;
-	pointer-events: none;
 }
 
 @media (max-width: 720px) {

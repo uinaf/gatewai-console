@@ -1,6 +1,6 @@
 import { Link, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useState, useTransition } from "react";
+import { type KeyboardEvent, useState, useTransition } from "react";
 
 import { Buckets } from "#/components/pools/buckets";
 import { stamp } from "#/components/alerts/format";
@@ -46,15 +46,27 @@ export function CredentialCard({
 	const refresh = useServerFn(refreshCredential);
 	const websockets = useServerFn(setWebsockets);
 	const [pending, startTransition] = useTransition();
-	const [failure, setFailure] = useState<string | null>(null);
+	const [outcome, setOutcome] = useState<{ kind: "ok" | "failed"; text: string } | null>(null);
+	const [confirming, setConfirming] = useState(false);
 
-	// A rejected runbook action stays on the card until the next action succeeds.
-	const act = (label: string, action: () => Promise<ActionResult>) =>
+	// The last runbook outcome stays on the card until the next action starts. Buttons stay
+	// enabled while pending so keyboard focus survives; `act` ignores the repeat click instead.
+	const act = (label: string, action: () => Promise<ActionResult>) => {
+		if (pending) return;
+		setOutcome(null);
 		startTransition(async () => {
 			const result = await action();
-			setFailure(result.ok ? null : `${label} failed: ${result.message}`);
+			setOutcome(
+				result.ok
+					? { kind: "ok", text: `${label} done.` }
+					: { kind: "failed", text: `${label} failed: ${result.message}` },
+			);
 			await router.invalidate();
 		});
+	};
+	const cancelOnEscape = (event: KeyboardEvent<HTMLButtonElement>) => {
+		if (event.key === "Escape") setConfirming(false);
+	};
 
 	const { quota } = credential;
 	const creditsLine = quota.credits
@@ -103,14 +115,14 @@ export function CredentialCard({
 
 			<Buckets buckets={credential.recentRequests} />
 
-			<footer className="card-foot" data-note={failure || note ? "" : undefined}>
-				{failure || note ? (
+			<footer className="card-foot" data-note={outcome || note ? "" : undefined}>
+				{outcome || note ? (
 					<p
 						className="u-meta card-note"
-						role={failure ? "alert" : undefined}
-						data-failure={failure ? "" : undefined}
+						role={outcome ? (outcome.kind === "failed" ? "alert" : "status") : undefined}
+						data-failure={outcome?.kind === "failed" ? "" : undefined}
 					>
-						{failure ?? note}
+						{outcome?.text ?? note}
 					</p>
 				) : null}
 				<div className="card-actions">
@@ -118,22 +130,40 @@ export function CredentialCard({
 						history →
 					</Link>
 					{credential.status === "cooling" ? (
-						<button
-							type="button"
-							className="u-btn u-btn--sm"
-							disabled={pending}
-							aria-label={`reset cooldown for ${credential.label}`}
-							onClick={() =>
-								act("reset cooldown", () => reset({ data: { authIndex: credential.authIndex } }))
-							}
-						>
-							reset cooldown
-						</button>
+						<>
+							<button
+								type="button"
+								className="u-btn u-btn--sm"
+								aria-disabled={pending || undefined}
+								aria-label={`${confirming ? "confirm reset cooldown" : "reset cooldown"} for ${credential.label}`}
+								onKeyDown={cancelOnEscape}
+								onClick={() => {
+									if (!confirming) {
+										setConfirming(true);
+										return;
+									}
+									setConfirming(false);
+									act("reset cooldown", () => reset({ data: { authIndex: credential.authIndex } }));
+								}}
+							>
+								{confirming ? "confirm reset" : "reset cooldown"}
+							</button>
+							{confirming ? (
+								<button
+									type="button"
+									className="card-action"
+									onKeyDown={cancelOnEscape}
+									onClick={() => setConfirming(false)}
+								>
+									cancel
+								</button>
+							) : null}
+						</>
 					) : null}
 					<button
 						type="button"
 						className="card-action"
-						disabled={pending}
+						aria-disabled={pending || undefined}
 						aria-label={`refresh ${credential.label}`}
 						onClick={() => act("refresh", () => refresh({ data: { name: credential.name } }))}
 					>
@@ -143,7 +173,7 @@ export function CredentialCard({
 						<button
 							type="button"
 							className="card-action"
-							disabled={pending}
+							aria-disabled={pending || undefined}
 							aria-label={`websockets for ${credential.label}`}
 							aria-pressed={credential.websockets}
 							onClick={() =>
