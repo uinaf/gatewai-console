@@ -8,4 +8,4 @@ allowBuilds:
   esbuild: true
 
 minimumReleaseAgeExclude:
-  - "@uinaf/design@1.15.0"
+  - "@uinaf/design@1.15.1"

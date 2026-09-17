@@ -29,7 +29,7 @@
 		"@effect/sql-sqlite-node": "4.0.0-rc.115",
 		"@tanstack/react-router": "1.170.36",
 		"@tanstack/react-start": "1.168.54",
-		"@uinaf/design": "^1.15.0",
+		"@uinaf/design": "^1.15.1",
 		"effect": "4.0.0-rc.115",
 		"react": "^19.3.0",
 		"react-dom": "^19.3.0"

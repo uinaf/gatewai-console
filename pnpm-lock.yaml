@@ -122,8 +122,8 @@ importers:
         specifier: 1.168.54
         version: 1.168.54(@voidzero-dev/vite-plus-core@0.3.2(@types/node@24.13.4)(jiti@2.7.0)(typescript@7.0.2)(yaml@2.9.1))(crossws@0.4.12(srvx@1.0.5))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(rolldown@1.2.8)
       '@uinaf/design':
-        specifier: ^1.15.0
-        version: 1.15.0
+        specifier: ^1.15.1
+        version: 1.15.1
       effect:
         specifier: 4.0.0-rc.115
         version: 4.0.0-rc.115
@@ -1209,8 +1209,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@uinaf/design@1.15.0':
-    resolution: {integrity: sha512-hWiR92+lnR+MF/B05O27ktdQ+9uO/XIPyBJCe0rOA996sgUQuDmhvOnXNDpLhMc2jyILtgyB3DV43Hk56rYn8Q==}
+  '@uinaf/design@1.15.1':
+    resolution: {integrity: sha512-NWGlGgm5+a7i2AAtD2Y81+1EvYKCbZtoLLZBLYDNhB6yZhCorvxDtk8EH7riVFZHCMkD11/lyAzQ5pJLi1FyNQ==}
     engines: {node: '>=24.18.0'}
     hasBin: true
 
@@ -3053,7 +3053,7 @@ snapshots:
   '@typescript/typescript-win32-x64@7.0.2':
     optional: true
 
-  '@uinaf/design@1.15.0':
+  '@uinaf/design@1.15.1':
     dependencies:
       postcss: 8.5.28
 
