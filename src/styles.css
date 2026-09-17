@@ -609,6 +609,35 @@ a.card-action {
 .ledger-empty {
 	margin-top: var(--sp-3);
 }
+.series-section {
+	margin-top: var(--sp-8);
+}
+.series-section > .u-label {
+	display: block;
+	font-size: var(--text-sm);
+}
+/* Shares the y column and plot frame with the quota history below so the two x-axes line up. */
+.series-plot {
+	margin-top: var(--sp-3);
+}
+.series-plot .history-y,
+.series-chart {
+	height: 120px;
+}
+.series-chart {
+	border-left: 1px solid var(--border);
+	border-bottom: 1px solid var(--border);
+}
+.series-chart .ok,
+.series-legend i[data-ok] {
+	fill: var(--neutral-400);
+	background: var(--neutral-400);
+}
+.series-chart .failed,
+.series-legend i[data-failed] {
+	fill: var(--error);
+	background: var(--error);
+}
 .history-section {
 	margin-top: var(--sp-12);
 }

@@ -14,6 +14,7 @@ import {
 	credentialNamesByAuthIndex,
 	previousRange,
 	quotaHistory,
+	requestSeries,
 	summary,
 } from "#/server/ledger/queries";
 import {
@@ -320,4 +321,60 @@ test("the raw-only dimensions group by reasoning effort, tier, and agent; rollup
 	]);
 	expect(result.byAgent.map((r) => [r.label, r.requests])).toEqual([["—", 4]]);
 	expect(result.rolled).toEqual([]);
+});
+
+test("request series buckets hourly up to three days, daily past that, zero-filled, and reads rollups when old", async () => {
+	const rows = [
+		row({ request_id: "s1", timestamp: "2026-09-15T01:10:00.000Z" }),
+		row({ request_id: "s2", timestamp: "2026-09-15T01:50:00.000Z", failed: 1 }),
+		row({ request_id: "s3", timestamp: "2026-09-15T04:00:00.000Z" }),
+		row({ request_id: "s4", timestamp: "2026-09-13T12:00:00.000Z" }),
+		row({ request_id: "out", timestamp: "2026-09-16T00:00:00.000Z" }),
+	];
+	const result = await run(
+		Effect.gen(function* () {
+			yield* insertRequests(rows, ClientLabels.empty());
+			// A range starting mid-hour: the first bucket is the floor of `from`, the last stops before `to`.
+			const hourly = yield* requestSeries({
+				from: "2026-09-15T00:30:00.000Z",
+				to: "2026-09-15T05:00:00.000Z",
+			});
+			const daily = yield* requestSeries({
+				from: "2026-09-12T00:00:00.000Z",
+				to: "2026-09-16T00:00:00.000Z",
+			});
+			yield* rollupSince("2026-09-13T00:00:00.000Z");
+			const old = Date.parse("2027-01-01T00:00:00.000Z");
+			const rolledHourly = yield* requestSeries(
+				{ from: "2026-09-15T00:00:00.000Z", to: "2026-09-15T05:00:00.000Z" },
+				old,
+			);
+			const rolledDaily = yield* requestSeries(
+				{ from: "2026-09-12T00:00:00.000Z", to: "2026-09-16T00:00:00.000Z" },
+				old,
+			);
+			return { hourly, daily, rolledHourly, rolledDaily };
+		}),
+	);
+	expect(result.hourly.map((b) => [b.at.slice(11, 13), b.requests, b.failed])).toEqual([
+		["00", 0, 0],
+		["01", 2, 1],
+		["02", 0, 0],
+		["03", 0, 0],
+		["04", 1, 0],
+	]);
+	expect(result.daily.map((b) => [b.at.slice(5, 10), b.requests, b.failed])).toEqual([
+		["09-12", 0, 0],
+		["09-13", 1, 0],
+		["09-14", 0, 0],
+		["09-15", 3, 1],
+	]);
+	expect(result.rolledHourly.map((b) => [b.requests, b.failed])).toEqual([
+		[0, 0],
+		[2, 1],
+		[0, 0],
+		[0, 0],
+		[1, 0],
+	]);
+	expect(result.rolledDaily.map((b) => b.requests)).toEqual([0, 1, 0, 3]);
 });

@@ -4,6 +4,7 @@ import { stamp } from "#/components/alerts/format";
 import { Breakdown } from "#/components/ledger/breakdown";
 import { Fault } from "#/components/pools/fault";
 import { QuotaHistory } from "#/components/ledger/quota-history";
+import { RequestsSeries } from "#/components/ledger/requests-series";
 import { LedgerStats } from "#/components/ledger/stats";
 import { Shell } from "#/components/shell";
 import { type LedgerQuery, loadLedger } from "#/functions/ledger";
@@ -143,6 +144,11 @@ function LedgerPage() {
 			)}
 
 			<LedgerStats current={view.current} previous={view.previous} comparable={view.comparable} />
+
+			<section className="series-section">
+				<span className="u-label">requests over time</span>
+				<RequestsSeries series={view.series} range={view.range} fetchedAt={view.fetchedAt} />
+			</section>
 
 			<nav className="u-tabs ledger-tabs" aria-label="dimension">
 				{DIMENSIONS.map((d) => (

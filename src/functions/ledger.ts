@@ -7,6 +7,7 @@ import {
 	type Dimension,
 	type QuotaPoint,
 	type Range,
+	type SeriesBucket,
 	type Summary,
 	breakdown,
 	clientLabels,
@@ -16,6 +17,7 @@ import {
 	earliestRequestAt,
 	previousRange,
 	quotaHistory,
+	requestSeries,
 	summary,
 } from "#/server/ledger/queries";
 import { readCollectorState } from "#/server/ledger/store";
@@ -56,6 +58,8 @@ interface LedgerLoaded {
 	readonly comparable: boolean;
 	/** First stored request, for the note when the range is not comparable. */
 	readonly earliest: string | null;
+	/** Requests and failures per hour or day across the range, one entry per bucket. */
+	readonly series: ReadonlyArray<SeriesBucket>;
 	readonly by: Dimension;
 	readonly rows: ReadonlyArray<BreakdownRow>;
 	readonly credentials: ReadonlyArray<{ name: string; label: string; provider: string }>;
@@ -160,6 +164,7 @@ export const loadLedger = createServerFn({ method: "GET" })
 						previous: yield* summary(previousRange(range)),
 						comparable: isComparable(range, earliest),
 						earliest,
+						series: yield* requestSeries(range),
 						by: data.by,
 						rows,
 						credentials,

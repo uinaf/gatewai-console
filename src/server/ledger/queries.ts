@@ -98,6 +98,53 @@ export const earliestRequestAt = Effect.gen(function* () {
 	return [row?.at, rolled?.at].filter((v): v is string => !!v).sort()[0] ?? null;
 });
 
+export interface SeriesBucket {
+	readonly at: string;
+	readonly requests: number;
+	readonly failed: number;
+}
+
+const HOUR_MS = 3_600_000;
+const DAY_MS = 86_400_000;
+/** Hourly buckets read fine up to three days; past that a day per bar keeps the chart legible. */
+const HOURLY_MAX_MS = 3 * DAY_MS;
+
+/** Requests and failures per bucket, hourly up to 3 days else daily, one entry per bucket touching the range (zeros filled). Older-than-retention ranges read the rollups. */
+export const requestSeries = (range: Range, now: number = Date.now()) =>
+	Effect.gen(function* () {
+		const sql = yield* SqlClient.SqlClient;
+		const from = Date.parse(range.from);
+		const to = Date.parse(range.to);
+		const step = to - from <= HOURLY_MAX_MS ? HOUR_MS : DAY_MS;
+		// Both tables hold ISO text, so the bucket key is a prefix plus a fixed suffix.
+		const rows = usesRollups(range, now)
+			? step === HOUR_MS
+				? yield* sql<{ at: string; requests: number; failed: number }>`
+					SELECT hour AS at, sum(requests) AS requests, sum(failed) AS failed FROM request_rollups
+					WHERE hour >= ${range.from} AND hour < ${range.to} GROUP BY hour`
+				: yield* sql<{ at: string; requests: number; failed: number }>`
+					SELECT substr(hour, 1, 10) || 'T00:00:00.000Z' AS at, sum(requests) AS requests, sum(failed) AS failed
+					FROM request_rollups WHERE hour >= ${range.from} AND hour < ${range.to} GROUP BY 1`
+			: step === HOUR_MS
+				? yield* sql<{ at: string; requests: number; failed: number }>`
+					SELECT substr(timestamp, 1, 13) || ':00:00.000Z' AS at, count(*) AS requests, coalesce(sum(failed), 0) AS failed
+					FROM requests WHERE timestamp >= ${range.from} AND timestamp < ${range.to} GROUP BY 1`
+				: yield* sql<{ at: string; requests: number; failed: number }>`
+					SELECT substr(timestamp, 1, 10) || 'T00:00:00.000Z' AS at, count(*) AS requests, coalesce(sum(failed), 0) AS failed
+					FROM requests WHERE timestamp >= ${range.from} AND timestamp < ${range.to} GROUP BY 1`;
+		const counted = new Map(rows.map((row) => [Date.parse(row.at), row]));
+		const buckets: Array<SeriesBucket> = [];
+		for (let at = Math.floor(from / step) * step; at < to; at += step) {
+			const row = counted.get(at);
+			buckets.push({
+				at: new Date(at).toISOString(),
+				requests: row?.requests ?? 0,
+				failed: row?.failed ?? 0,
+			});
+		}
+		return buckets;
+	});
+
 export const previousRange = (range: Range): Range => {
 	const span = Date.parse(range.to) - Date.parse(range.from);
 	return { from: new Date(Date.parse(range.from) - span).toISOString(), to: range.from };
