@@ -51,9 +51,10 @@ export function CredentialCard({ credential, now }: { credential: Credential; no
 		});
 
 	const { quota } = credential;
+	const creditsLine = quota.credits
+		? `credits ${quota.credits.unlimited ? "unlimited" : credits(quota.credits.balance)}`
+		: null;
 	const meta: Array<string> = [];
-	if (quota.credits)
-		meta.push(`credits ${quota.credits.unlimited ? "unlimited" : credits(quota.credits.balance)}`);
 	if (quota.overage) meta.push(`overage ${quota.overage}`);
 	if (credential.provider === "xai") meta.push("xai reports no quota");
 	const note = footnote(credential);
@@ -94,7 +95,11 @@ export function CredentialCard({ credential, now }: { credential: Credential; no
 			) : null}
 
 			<div className="card-meta">
-				<span className="u-meta">{meta.join(" · ")}</span>
+				<span className="u-meta">
+					{creditsLine ? <span className="card-credits">{creditsLine}</span> : null}
+					{creditsLine && meta.length > 0 ? <span className="card-credits"> · </span> : null}
+					{meta.join(" · ")}
+				</span>
 				<span className="u-meta">
 					{credential.success} ok · {credential.failed} failed
 				</span>

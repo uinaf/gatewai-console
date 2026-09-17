@@ -42,7 +42,12 @@ function LedgerPage() {
 
 	if (!view.ok) {
 		return (
-			<Shell host={view.host} operator={view.operator} stamp={{ observedAt: null, serverNow: now }}>
+			<Shell
+				host={view.host}
+				operator={view.operator}
+				stamp={{ observedAt: null, serverNow: now }}
+				title="ledger"
+			>
 				<Fault reason="internal" message={view.message} host={view.host} />
 			</Shell>
 		);
@@ -108,6 +113,11 @@ function LedgerPage() {
 						apply
 					</button>
 				</form>
+			) : null}
+			{view.customRejected ? (
+				<p className="u-meta range-note">
+					that range is empty or inverted; showing the last seven days instead.
+				</p>
 			) : null}
 			{view.error ? <p className="u-meta range-note">collector: {view.error}</p> : null}
 

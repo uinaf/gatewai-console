@@ -103,14 +103,16 @@ const codexWindows = (signals: Signals): ReadonlyArray<QuotaWindow> =>
 		];
 	});
 
-// `claude-fable-5-1` -> `fable`. The per-model snapshot keys name the model
-// the 7d_oi window belongs to; without one the current flagship is assumed.
+// `claude-fable-5-1` -> `fable`: the model whose snapshot carries the 7d_oi
+// window owns it. Key order is not a signal; without such a snapshot the
+// current flagship is assumed.
 const flagshipOf = (file: AuthFile): string => {
-	for (const key of Object.keys(file.model_quotas ?? {})) {
-		const match = /^claude-([a-z]+)/.exec(key);
-		if (match?.[1]) return match[1];
-	}
-	return "fable";
+	const owner = Object.entries(file.model_quotas ?? {}).find(
+		([, snapshot]) =>
+			finite(snapshot?.signals?.["Anthropic-Ratelimit-Unified-7d_oi-Utilization"]) !== null,
+	);
+	const match = owner ? /^claude-([a-z]+)/.exec(owner[0]) : null;
+	return match?.[1] ?? "fable";
 };
 
 const windowsOf = (file: AuthFile, signals: Signals): ReadonlyArray<QuotaWindow> => {

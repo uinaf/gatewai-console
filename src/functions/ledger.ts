@@ -46,6 +46,8 @@ interface LedgerLoaded {
 	readonly fetchedAt: string;
 	readonly observedAt: string | null;
 	readonly range: Range;
+	/** A submitted custom range was empty or inverted; the seven-day default was used. */
+	readonly customRejected: boolean;
 	readonly current: Summary;
 	readonly previous: Summary;
 	readonly by: Dimension;
@@ -64,18 +66,32 @@ const PRESET_MS: Record<Exclude<Preset, "custom">, number> = {
 	"30d": 30 * 86_400_000,
 };
 
-export const resolveRange = (query: LedgerQuery, now: number): Range => {
-	if (query.preset === "custom" && query.from && query.to) {
+/** The range to query, and whether a submitted custom range was rejected for the seven-day default. */
+export const resolveRange = (
+	query: LedgerQuery,
+	now: number,
+): Range & { readonly customRejected: boolean } => {
+	// Submitted dates, even empty ones, are a custom range to judge; absent ones are the initial view.
+	const custom = query.preset === "custom" && query.from !== undefined && query.to !== undefined;
+	if (custom) {
 		const from = Date.parse(query.from);
 		const to = Date.parse(query.to);
 		// A date-only `to` means the whole day, so a single calendar day is a valid range.
 		const end = query.to.length === 10 ? to + 86_400_000 : to;
 		if (Number.isFinite(from) && Number.isFinite(end) && from < end) {
-			return { from: new Date(from).toISOString(), to: new Date(end).toISOString() };
+			return {
+				from: new Date(from).toISOString(),
+				to: new Date(end).toISOString(),
+				customRejected: false,
+			};
 		}
 	}
 	const span = PRESET_MS[query.preset === "custom" ? "7d" : query.preset];
-	return { from: new Date(now - span).toISOString(), to: new Date(now).toISOString() };
+	return {
+		from: new Date(now - span).toISOString(),
+		to: new Date(now).toISOString(),
+		customRejected: custom,
+	};
 };
 
 const isQuery = (input: unknown): LedgerQuery => {
@@ -100,7 +116,7 @@ export const loadLedger = createServerFn({ method: "GET" })
 				Effect.gen(function* () {
 					const host = yield* HostLabel;
 					const fetchedAt = new Date();
-					const range = resolveRange(data, fetchedAt.getTime());
+					const { customRejected, ...range } = resolveRange(data, fetchedAt.getTime());
 					const labels =
 						data.by === "client"
 							? yield* clientLabels
@@ -117,6 +133,7 @@ export const loadLedger = createServerFn({ method: "GET" })
 						fetchedAt: fetchedAt.toISOString(),
 						observedAt: state.lastSnapshotAt,
 						range,
+						customRejected,
 						current: yield* summary(range),
 						previous: yield* summary(previousRange(range)),
 						by: data.by,

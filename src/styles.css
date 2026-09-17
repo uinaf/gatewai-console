@@ -295,11 +295,20 @@ body {
 }
 .card-foot:not([data-note]) .card-actions {
 	opacity: 0;
+	pointer-events: none;
 	transition: opacity var(--duration-fast) var(--ease-snappy);
 }
 .card:hover .card-foot:not([data-note]) .card-actions,
 .card:focus-within .card-foot:not([data-note]) .card-actions {
 	opacity: 1;
+	pointer-events: auto;
+}
+/* Touch screens have no hover; the actions stay visible there. */
+@media (hover: none) {
+	.card-foot:not([data-note]) .card-actions {
+		opacity: 1;
+		pointer-events: auto;
+	}
 }
 .card-note {
 	line-height: 1.6;
@@ -471,6 +480,7 @@ body {
 	}
 	.card-foot:not([data-note]) .card-actions {
 		opacity: 1;
+		pointer-events: auto;
 	}
 	.page-head h1 {
 		font-size: var(--text-lg);
@@ -482,8 +492,11 @@ body {
 	.card-meta {
 		order: 1;
 	}
-	.card-meta > .u-meta:first-child:not(:only-child) {
+	.card-credits {
 		display: none;
+	}
+	.page-head {
+		flex-wrap: wrap;
 	}
 	.card-foot {
 		order: 2;

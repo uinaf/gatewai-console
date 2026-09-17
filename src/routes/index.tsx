@@ -63,7 +63,7 @@ function PoolsPage() {
 
 	if (!view.result.ok) {
 		return (
-			<Shell host={view.host} operator={view.operator} stamp={stamp}>
+			<Shell host={view.host} operator={view.operator} stamp={stamp} title="pools">
 				<Fault reason={view.result.reason} message={view.result.message} host={view.host} />
 			</Shell>
 		);

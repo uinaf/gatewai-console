@@ -46,6 +46,26 @@ test("codex primary window, credits, and plan; per-family windows are dropped", 
 	expect(labels.map(([label]) => label)).toEqual(["weekly"]);
 });
 
+test("the flagship weekly label follows the snapshot that carries 7d_oi, not key order", () => {
+	const base = files.files.find((file) => file.name === "claude-two@example.com.json");
+	if (!base?.model_quotas) throw new Error("fixture missing claude-two");
+	const fable = base.model_quotas["claude-fable-5-1"];
+	if (!fable) throw new Error("fixture missing the fable snapshot");
+	const reordered = {
+		...base,
+		model_quotas: {
+			"claude-haiku-4-5-20251001": {
+				observed_at: fable.observed_at,
+				signals: { "Anthropic-Ratelimit-Unified-5h-Utilization": "0.1" },
+			},
+			"claude-fable-5-1": fable,
+		},
+	};
+	expect(credentialOf(reordered).quota.windows.map((window) => window.label)).toContain(
+		"weekly fable",
+	);
+});
+
 test("xai reports counts without windows", () => {
 	const credential = byName("xai-two@example.com.json");
 	expect(credential.quota.windows).toEqual([]);
