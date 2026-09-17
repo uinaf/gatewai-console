@@ -11,10 +11,11 @@ export const compact = (n: number): string => {
 
 export const percent = (ratio: number, digits = 1): string => `${(ratio * 100).toFixed(digits)}%`;
 
-/** 9.4s, 720ms, or a dash. */
-export const millis = (ms: number | null): string => {
+/** "9.4", "0.72", or a dash: seconds with enough digits to compare. */
+export const seconds = (ms: number | null): string => {
 	if (ms === null) return "—";
-	return ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.round(ms)}ms`;
+	const s = ms / 1000;
+	return s >= 10 ? s.toFixed(0) : s >= 1 ? s.toFixed(1) : s.toFixed(2);
 };
 
 /** "↑ 23%", "↓ 6%", "new", or "" when both are zero. */

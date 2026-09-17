@@ -581,6 +581,9 @@ a.card-action {
 	overflow-x: auto;
 	margin-top: var(--sp-3);
 }
+.ledger-table td {
+	vertical-align: baseline;
+}
 .ledger-table td:first-child {
 	white-space: nowrap;
 }

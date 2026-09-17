@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 
-import { compact, count, delta, millis, percent } from "#/components/ledger/format";
+import { compact, count, delta, percent, seconds } from "#/components/ledger/format";
 import { credentialAnchor } from "#/components/pools/format";
 import type { BreakdownRow, Dimension } from "#/server/ledger/queries";
 
@@ -49,12 +49,12 @@ export function Breakdown({
 						<tr>
 							<th>{HEADINGS[by]}</th>
 							<th data-num>requests</th>
-							<th data-num>err</th>
+							<th data-num>error rate</th>
 							<th data-num>tokens</th>
 							<th data-num>cached</th>
-							<th data-num>p50</th>
-							<th data-num>p95</th>
-							<th data-num>ttft p50</th>
+							<th data-num>latency p50 (s)</th>
+							<th data-num>latency p95 (s)</th>
+							<th data-num>ttft p50 (s)</th>
 							<th className="share-head">model share</th>
 						</tr>
 					</thead>
@@ -95,9 +95,9 @@ export function Breakdown({
 									) : null}
 								</td>
 								<td data-num>{compact(row.cached)}</td>
-								<td data-num>{millis(row.p50)}</td>
-								<td data-num>{millis(row.p95)}</td>
-								<td data-num>{millis(row.ttftP50)}</td>
+								<td data-num>{seconds(row.p50)}</td>
+								<td data-num>{seconds(row.p95)}</td>
+								<td data-num>{seconds(row.ttftP50)}</td>
 								<td>
 									<div
 										className="u-stack share"
