@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 
 import type { Credential, Pools } from "#/server/management/credential";
-import type { QuotaWindow } from "#/server/management/quota";
+import type { Quota, QuotaWindow } from "#/server/management/quota";
 
 // xAI sends no rate-limit headers, so the proxy captures no quota signals for
 // it. The Management Center instead asks the grok billing endpoint through the
@@ -56,6 +56,17 @@ const xaiWindows = (config: XaiBillingConfig | undefined): ReadonlyArray<QuotaWi
 	];
 };
 
+/** On-demand spend against its cap; null unless the config carries a positive cap. */
+const onDemandOf = (config: XaiBillingConfig | undefined): Quota["onDemand"] => {
+	const cap = config?.onDemandCap?.val;
+	if (cap === undefined || !Number.isFinite(cap) || cap <= 0) return null;
+	const used = config?.onDemandUsed?.val;
+	return {
+		usedCents: used !== undefined && Number.isFinite(used) ? Math.max(0, used) : 0,
+		capCents: cap,
+	};
+};
+
 export const withXaiBilling = (
 	pools: Pools,
 	billing: ReadonlyMap<string, XaiBillingConfig | undefined>,
@@ -67,7 +78,12 @@ export const withXaiBilling = (
 		const windows = xaiWindows(billing.get(credential.authIndex));
 		return {
 			...credential,
-			quota: { ...credential.quota, windows, observedAt: windows.length > 0 ? observedAt : null },
+			quota: {
+				...credential.quota,
+				windows,
+				onDemand: onDemandOf(billing.get(credential.authIndex)),
+				observedAt: windows.length > 0 ? observedAt : null,
+			},
 		};
 	}),
 });

@@ -20,6 +20,8 @@ export interface Quota {
 	readonly observedAt: string | null;
 	readonly windows: ReadonlyArray<QuotaWindow>;
 	readonly credits: { readonly balance: number; readonly unlimited: boolean } | null;
+	/** Pay-as-you-go spend in cents against a cap; null when the provider reports none or the cap is zero. */
+	readonly onDemand: { readonly usedCents: number; readonly capCents: number } | null;
 	readonly plan: string | null;
 	readonly overage: "allowed" | "rejected" | null;
 }
@@ -161,5 +163,5 @@ export const quotaOf = (file: AuthFile): Quota => {
 		const overageStatus = signals["Anthropic-Ratelimit-Unified-Overage-Status"];
 		if (overageStatus === "allowed" || overageStatus === "rejected") overage = overageStatus;
 	}
-	return { observedAt, windows: [...windows.values()], credits, plan, overage };
+	return { observedAt, windows: [...windows.values()], credits, onDemand: null, plan, overage };
 };

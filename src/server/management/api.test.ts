@@ -70,7 +70,7 @@ const run = <A, E>(
 	use: (api: ManagementApi["Service"]) => Effect.Effect<A, E>,
 ) => Effect.flatMap(ManagementApi, use).pipe(Effect.provide(layer), Effect.exit, Effect.runPromise);
 
-const xaiBilling = (creditUsagePercent?: number) => ({
+const xaiBilling = (creditUsagePercent?: number, onDemand?: { cap: number; used?: number }) => ({
 	status: 200,
 	body: {
 		status_code: 200,
@@ -82,7 +82,8 @@ const xaiBilling = (creditUsagePercent?: number) => ({
 					end: "2026-09-20T17:40:10+00:00",
 				},
 				...(creditUsagePercent === undefined ? {} : { creditUsagePercent }),
-				onDemandCap: { val: 0 },
+				onDemandCap: { val: onDemand?.cap ?? 0 },
+				...(onDemand?.used === undefined ? {} : { onDemandUsed: { val: onDemand.used } }),
 			},
 		}),
 	},
@@ -151,6 +152,27 @@ test("xai quota comes from grok billing through api-call; a failed read leaves n
 	const windows = xai.map((c) => c.quota.windows.map((w) => [w.label, w.usedPercent, w.resetsAt]));
 	expect(windows).toContainEqual([["weekly", 1, "2026-09-20T17:40:10.000Z"]]);
 	expect(windows).toContainEqual([]);
+});
+
+test("xai on-demand spend is carried when the cap is positive, null otherwise", async () => {
+	const onDemandOf = async (...replies: Array<ReturnType<typeof xaiBilling>>) => {
+		const { layer } = scripted([{ status: 200, body: authFiles }, ...replies]);
+		const exit = await run(layer, (api) => api.pools);
+		expect(exit._tag).toBe("Success");
+		if (exit._tag !== "Success") return [];
+		return exit.value.credentials.filter((c) => c.provider === "xai").map((c) => c.quota.onDemand);
+	};
+	const spent = await onDemandOf(
+		xaiBilling(1, { cap: 5000, used: 1250 }),
+		xaiBilling(1, { cap: 0 }),
+	);
+	expect(spent).toHaveLength(2);
+	expect(spent).toEqual(expect.arrayContaining([{ usedCents: 1250, capCents: 5000 }, null]));
+	const fresh = await onDemandOf(xaiBilling(1, { cap: 3000 }), xaiBilling(1, { cap: 3000 }));
+	expect(fresh).toEqual([
+		{ usedCents: 0, capCents: 3000 },
+		{ usedCents: 0, capCents: 3000 },
+	]);
 });
 
 test("codex quota comes from the chatgpt usage endpoint through api-call; a failed read keeps the header windows", async () => {

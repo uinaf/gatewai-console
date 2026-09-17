@@ -77,6 +77,9 @@ export function CredentialCard({
 	const creditsLine = quota.credits
 		? `credits ${quota.credits.unlimited ? "unlimited" : credits(quota.credits.balance)}`
 		: null;
+	const onDemandLine = quota.onDemand
+		? `on-demand ${credits(quota.onDemand.usedCents / 100)} of ${credits(quota.onDemand.capCents / 100)}`
+		: null;
 	const note = footnote(credential);
 
 	return (
@@ -112,9 +115,10 @@ export function CredentialCard({
 				</div>
 			) : null}
 
-			{creditsLine ? (
+			{creditsLine || onDemandLine ? (
 				<div className="card-meta">
-					<span className="u-meta card-credits">{creditsLine}</span>
+					{creditsLine ? <span className="u-meta card-credits">{creditsLine}</span> : null}
+					{onDemandLine ? <span className="u-meta card-credits">{onDemandLine}</span> : null}
 				</div>
 			) : null}
 

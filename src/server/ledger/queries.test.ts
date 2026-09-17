@@ -144,6 +144,7 @@ test("quota history marks drops as resets and includes the point before the rang
 			windows: [{ label: "weekly", usedPercent, resetsAt: null, status: "allowed" }],
 			credits: null,
 			plan: "pro",
+			onDemand: null,
 			overage: null,
 		},
 	});
@@ -230,7 +231,14 @@ test("the credential dimension labels rows by auth_index", async () => {
 						lastRefresh: null,
 						recentRequests: [],
 						websockets: null,
-						quota: { observedAt: null, windows: [], credits: null, plan: null, overage: null },
+						quota: {
+							observedAt: null,
+							windows: [],
+							credits: null,
+							onDemand: null,
+							plan: null,
+							overage: null,
+						},
 					},
 				],
 				"2026-09-15T00:00:00.000Z",
