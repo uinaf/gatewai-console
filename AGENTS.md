@@ -75,9 +75,10 @@ appears in the payload or the log.
   screenshots with `gh pr create --attach`, never commit them.
 - Pushes to `main` publish `ghcr.io/uinaf/gatewai-console` (`sha-<sha>`, the
   package version, `latest`) with the digest in the run summary. The same run
-  opens the digest bump in `uinaf/zebroid-infra` as `uinaf-releaser` with
-  auto-merge (the `release` environment holds the app credentials) and prunes
-  the registry to the last five tagged images.
+  commits the digest bump straight to `main` of `uinaf/zebroid-infra` as
+  `uinaf-releaser` (the `release` environment holds the app credentials; the
+  app bypasses the required checks there) and prunes the registry to the last
+  five tagged images.
 - Renovate extends `uinaf/renovate-config`.
 
 ## Repository Skills
