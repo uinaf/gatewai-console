@@ -78,7 +78,7 @@ function PoolsPage() {
 
 	return (
 		<Shell host={view.host} operator={view.operator} stamp={stamp} title="pools">
-			<Stats summaries={summarize(credentials)} />
+			<Stats summaries={summarize(credentials)} now={now} />
 
 			<div className="u-toolbar pools-toolbar">
 				<nav className="u-segmented" aria-label="provider">

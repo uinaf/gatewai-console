@@ -78,8 +78,12 @@ export interface ProviderSummary {
 	readonly accounts: number;
 	readonly cooling: number;
 	readonly requestsLastHour: number;
-	/** Mean of `100 - used` over the long window of each reporting account; null when none report. */
-	readonly remainingPercent: number | null;
+	/** The account with the least remaining on its primary window; null when none report. */
+	readonly worst: {
+		readonly label: string;
+		readonly remainingPercent: number;
+		readonly resetsAt: string | null;
+	} | null;
 	readonly unreported: number;
 }
 
@@ -102,18 +106,27 @@ export const summarize = (
 	const providers = [...new Set(credentials.map((credential) => credential.provider))];
 	return providers.map((provider) => {
 		const own = credentials.filter((credential) => credential.provider === provider);
-		const reporting = own.map(primaryWindow).filter((window) => window !== null);
-		const remaining = reporting.map((window) => 100 - window.usedPercent);
+		const reporting = own.flatMap((credential) => {
+			const window = primaryWindow(credential);
+			return window ? [{ credential, window }] : [];
+		});
+		const worst =
+			reporting
+				.map(({ credential, window }) => ({
+					label: credential.label,
+					remainingPercent: 100 - window.usedPercent,
+					resetsAt: window.resetsAt,
+				}))
+				.sort(
+					(a, b) => a.remainingPercent - b.remainingPercent || a.label.localeCompare(b.label),
+				)[0] ?? null;
 		return {
 			provider,
 			plan: own.map((credential) => credential.plan).find((plan) => plan !== null) ?? null,
 			accounts: own.length,
 			cooling: own.filter((credential) => credential.status === "cooling").length,
 			requestsLastHour: own.reduce((total, credential) => total + requestsLastHour(credential), 0),
-			remainingPercent:
-				remaining.length > 0
-					? Math.round(remaining.reduce((a, b) => a + b, 0) / remaining.length)
-					: null,
+			worst,
 			unreported: own.length - reporting.length,
 		};
 	});
