@@ -53,9 +53,8 @@ function LedgerPage() {
 			host={view.host}
 			operator={view.operator}
 			stamp={{ observedAt: view.observedAt, serverNow: now }}
-		>
-			<div className="page-head">
-				<h1>ledger</h1>
+			title="ledger"
+			headExtra={
 				<nav className="u-segmented" aria-label="range">
 					{PRESETS.map((p) => (
 						<Link
@@ -68,7 +67,8 @@ function LedgerPage() {
 						</Link>
 					))}
 				</nav>
-			</div>
+			}
+		>
 			{preset === "custom" ? (
 				<form
 					key={`${search.from ?? ""}-${search.to ?? ""}`}

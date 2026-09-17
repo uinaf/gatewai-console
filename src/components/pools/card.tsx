@@ -55,7 +55,7 @@ export function CredentialCard({ credential, now }: { credential: Credential; no
 	if (quota.credits)
 		meta.push(`credits ${quota.credits.unlimited ? "unlimited" : credits(quota.credits.balance)}`);
 	if (quota.overage) meta.push(`overage ${quota.overage}`);
-	if (credential.provider === "xai") meta.push("no quota headers from xai");
+	if (credential.provider === "xai") meta.push("xai reports no quota");
 	const note = footnote(credential);
 
 	return (
@@ -127,7 +127,7 @@ export function CredentialCard({ credential, now }: { credential: Credential; no
 					) : null}
 					<button
 						type="button"
-						className="u-btn u-btn--sm u-btn--ghost"
+						className="card-action"
 						disabled={pending}
 						onClick={() => act("refresh", () => refresh({ data: { name: credential.name } }))}
 					>
@@ -136,7 +136,7 @@ export function CredentialCard({ credential, now }: { credential: Credential; no
 					{credential.websockets !== null ? (
 						<button
 							type="button"
-							className="u-btn u-btn--sm u-btn--ghost"
+							className="card-action"
 							disabled={pending}
 							aria-pressed={credential.websockets}
 							onClick={() =>

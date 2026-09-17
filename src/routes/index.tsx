@@ -77,11 +77,7 @@ function PoolsPage() {
 		.sort(comparators[sort]);
 
 	return (
-		<Shell host={view.host} operator={view.operator} stamp={stamp}>
-			<div className="page-head">
-				<h1>pools</h1>
-			</div>
-
+		<Shell host={view.host} operator={view.operator} stamp={stamp} title="pools">
 			<Stats summaries={summarize(credentials)} />
 
 			<div className="u-toolbar pools-toolbar">
