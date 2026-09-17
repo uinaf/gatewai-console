@@ -108,12 +108,8 @@ jobs:
           permission-contents: write
           permission-pull-requests: write
 
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: ${{ env.INFRA_REPO }}
-          token: ${{ steps.releaser.outputs.token }}
-          persist-credentials: true
-
+      # The commit is created through the API so GitHub signs it for the app;
+      # the infrastructure repository requires signed commits.
       - name: Open the digest bump
         env:
           GH_TOKEN: ${{ steps.releaser.outputs.token }}
@@ -126,19 +122,29 @@ jobs:
           set -euo pipefail
           short="${SOURCE_SHA:0:7}"
           branch="chore/gatewai-console-$short"
-          current=$(sed -nE "s|^ *image: $IMAGE:[^@]+@(sha256:[0-9a-f]{64})$|\1|p" "$COMPOSE_PATH")
+          base=$(gh api "repos/$INFRA_REPO/git/ref/heads/main" --jq .object.sha)
+          gh api "repos/$INFRA_REPO/contents/$COMPOSE_PATH?ref=$base" --jq .content | base64 -d > compose.yaml
+          current=$(sed -nE "s|^ *image: $IMAGE:[^@]+@(sha256:[0-9a-f]{64})$|\1|p" compose.yaml)
           if [ "$current" = "$DIGEST" ]; then
             echo "already pinned to $DIGEST" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          sed -i -E "s|^( *image: )$IMAGE:[^@]+@sha256:[0-9a-f]{64}$|\1$IMAGE:$VERSION@$DIGEST|" "$COMPOSE_PATH"
-          grep -q "$DIGEST" "$COMPOSE_PATH"
-          git config user.name "uinaf-releaser[bot]"
-          git config user.email "uinaf-releaser[bot]@users.noreply.github.com"
-          git checkout -b "$branch"
-          git commit -am "chore(platform): gatewai-console at $short"
-          git push origin "$branch"
-          cat > "$RUNNER_TEMP/body.md" <<'BODY'
+          sed -i -E "s|^( *image: )$IMAGE:[^@]+@sha256:[0-9a-f]{64}$|\1$IMAGE:$VERSION@$DIGEST|" compose.yaml
+          grep -q "$DIGEST" compose.yaml
+          gh api -X POST "repos/$INFRA_REPO/git/refs" -f ref="refs/heads/$branch" -f sha="$base" --jq .ref
+          jq -n --arg repo "$INFRA_REPO" --arg branch "$branch" --arg base "$base" \
+            --arg path "$COMPOSE_PATH" --arg contents "$(base64 -w0 compose.yaml)" \
+            --arg headline "chore(platform): gatewai-console at $short" '{
+              query: "mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid } } }",
+              variables: { input: {
+                branch: { repositoryNameWithOwner: $repo, branchName: $branch },
+                expectedHeadOid: $base,
+                message: { headline: $headline },
+                fileChanges: { additions: [ { path: $path, contents: $contents } ] }
+              } }
+            }' > commit.json
+          gh api graphql --input commit.json --jq '.data.createCommitOnBranch.commit.oid'
+          cat > body.md <<'BODY'
           ## Problem
 
           The gateway hosts run an older console image than `__REPO__` publishes for `__SHORT__`.
@@ -152,9 +158,9 @@ jobs:
           Deploy on merge; both hosts must pass the console `/healthz` check.
           BODY
           sed -i -e "s|__REPO__|$SOURCE_REPO|g" -e "s|__SHORT__|$short|g" -e "s|__IMAGE__|$IMAGE|g" \
-            -e "s|__VERSION__|$VERSION|g" -e "s|__DIGEST__|$DIGEST|g" -e "s|__SHA__|$SOURCE_SHA|g" "$RUNNER_TEMP/body.md"
+            -e "s|__VERSION__|$VERSION|g" -e "s|__DIGEST__|$DIGEST|g" -e "s|__SHA__|$SOURCE_SHA|g" body.md
           url=$(gh pr create --repo "$INFRA_REPO" --base main --head "$branch" \
-            --title "chore(platform): gatewai-console at $short" --body-file "$RUNNER_TEMP/body.md")
+            --title "chore(platform): gatewai-console at $short" --body-file body.md)
           gh pr merge --repo "$INFRA_REPO" --squash --auto "$url"
           echo "- bump: $url" >> "$GITHUB_STEP_SUMMARY"
 
