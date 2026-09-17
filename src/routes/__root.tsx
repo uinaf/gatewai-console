@@ -1,6 +1,8 @@
-import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
+import { createRootRoute, HeadContent, Link, Outlet, Scripts } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 
+import { Fault } from "#/components/pools/fault";
+import { Shell } from "#/components/shell";
 import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
@@ -23,6 +25,24 @@ export const Route = createRootRoute({
 		],
 	}),
 	component: Outlet,
+	// Neither boundary has loader data, so the topbar shows a placeholder host.
+	errorComponent: ({ error, reset }) => (
+		<Shell host="—" operator={null} title="error">
+			<Fault
+				reason="render"
+				message={error instanceof Error ? error.message : String(error)}
+				host="—"
+				onRetry={reset}
+			/>
+		</Shell>
+	),
+	notFoundComponent: () => (
+		<Shell host="—" operator={null} title="not found">
+			<p className="u-meta">
+				no such page. <Link to="/">pools →</Link>
+			</p>
+		</Shell>
+	),
 	shellComponent: RootDocument,
 });
 

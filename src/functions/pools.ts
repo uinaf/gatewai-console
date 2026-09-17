@@ -6,7 +6,8 @@ import { ManagementApi, type ManagementError } from "#/server/management/api";
 import { type Pools } from "#/server/management/credential";
 import { runtime } from "#/server/runtime";
 
-export type FaultReason = ManagementError["reason"] | "internal";
+/** `render` is a thrown render error caught by the root route, not a loader result. */
+export type FaultReason = ManagementError["reason"] | "internal" | "render";
 
 export interface PoolsView {
 	readonly host: string;
