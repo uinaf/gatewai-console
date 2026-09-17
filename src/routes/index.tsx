@@ -60,6 +60,7 @@ const comparators: Record<Sort, (a: Credential, b: Credential) => number> = {
 function PoolsPage() {
 	const view = Route.useLoaderData();
 	const search = Route.useSearch();
+	const navigate = Route.useNavigate();
 	const now = useNow(Date.parse(view.fetchedAt));
 	// Client-side navigation does not re-evaluate `:target`, so the landed card is marked from the hash.
 	const hash = useHash();
@@ -104,33 +105,31 @@ function PoolsPage() {
 						</Link>
 					))}
 				</nav>
-				<nav className="u-segmented pools-sort" aria-label="sort">
-					{SORTS.map((key) => {
-						const active = key === sort;
-						// Clicking the active key flips it; a flip back to the natural direction drops the param.
-						const next: Dir = active ? (dir === "asc" ? "desc" : "asc") : DEFAULT_DIR[key];
-						return (
-							<Link
-								key={key}
-								to="/"
-								search={(prev) => ({
+				<label className="pools-sort">
+					<span className="visually-hidden">sort</span>
+					<select
+						className="u-select"
+						value={`${sort}:${dir}`}
+						onChange={(event) => {
+							const [key, next] = event.target.value.split(":") as [Sort, Dir];
+							void navigate({
+								search: (prev) => ({
 									...prev,
 									sort: key === "remaining" ? undefined : key,
 									dir: next === DEFAULT_DIR[key] ? undefined : next,
-								})}
-								aria-current={active ? "true" : undefined}
-								aria-label={`sort by ${key}, ${next}ending`}
-							>
-								{key}
-								{active ? (
-									<span className="sort-dir" aria-hidden="true">
-										{dir === "asc" ? "↑" : "↓"}
-									</span>
-								) : null}
-							</Link>
-						);
-					})}
-				</nav>
+								}),
+							});
+						}}
+					>
+						{SORTS.flatMap((key) =>
+							(["asc", "desc"] as const).map((d) => (
+								<option key={`${key}:${d}`} value={`${key}:${d}`}>
+									{key} {d === "asc" ? "↑" : "↓"}
+								</option>
+							)),
+						)}
+					</select>
+				</label>
 			</div>
 
 			{shown.length === 0 ? (
