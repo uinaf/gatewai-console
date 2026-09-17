@@ -78,7 +78,6 @@ function AlertsPage() {
 								<th>rule</th>
 								<th>scope</th>
 								<th>condition</th>
-								<th>delivery</th>
 								<th data-num>clear since</th>
 								<th data-num>last fired</th>
 							</tr>
@@ -89,7 +88,6 @@ function AlertsPage() {
 									<td>{rule.id}</td>
 									<td>{rule.scope}</td>
 									<td>{rule.condition}</td>
-									<td>{rule.delivers ? "heartbeat" : "console only"}</td>
 									<td data-num>{stamp(rule.clearSince)}</td>
 									<td data-num>{stamp(rule.lastFired)}</td>
 								</tr>
@@ -109,7 +107,7 @@ function AlertsPage() {
 							<thead>
 								<tr>
 									<th>what</th>
-									<th>subject</th>
+									<th>credential</th>
 									<th>rule</th>
 									<th data-num>started</th>
 									<th data-num>length</th>
@@ -126,7 +124,7 @@ function AlertsPage() {
 												{incident.what}
 											</span>
 										</td>
-										<td>{incident.subject}</td>
+										<td>{incident.subject.replace(/\.json$/, "")}</td>
 										<td>{incident.rule_id}</td>
 										<td data-num>{stamp(incident.started_at)}</td>
 										<td data-num data-ongoing={incident.ended_at ? undefined : ""}>

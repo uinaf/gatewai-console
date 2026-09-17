@@ -94,7 +94,7 @@ function PoolsPage() {
 					))}
 				</nav>
 				<label className="pools-sort">
-					<span className="u-label">sort</span>
+					<span className="visually-hidden">sort</span>
 					<select
 						className="u-select"
 						value={sort}

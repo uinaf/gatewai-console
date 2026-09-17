@@ -278,13 +278,28 @@ body {
 	background: var(--neutral-400);
 }
 
+/* The artboards show a footer only on cards with something to say; the quiet
+   actions on the other cards appear on hover or keyboard focus. */
 .card-foot {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
+	justify-content: flex-end;
 	gap: var(--sp-5);
+	margin-top: calc(-1 * var(--sp-2));
+}
+.card-foot[data-note] {
+	justify-content: space-between;
 	border-top: 1px solid var(--border-soft);
 	padding-top: var(--sp-4);
+	margin-top: 0;
+}
+.card-foot:not([data-note]) .card-actions {
+	opacity: 0;
+	transition: opacity var(--duration-fast) var(--ease-snappy);
+}
+.card:hover .card-foot:not([data-note]) .card-actions,
+.card:focus-within .card-foot:not([data-note]) .card-actions {
+	opacity: 1;
 }
 .card-note {
 	line-height: 1.6;
@@ -318,6 +333,15 @@ body {
 	display: flex;
 	align-items: center;
 	gap: var(--sp-3);
+}
+
+.visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
 }
 
 .stamp-narrow {
@@ -444,6 +468,25 @@ body {
 		flex-direction: column;
 		align-items: flex-start;
 		gap: var(--sp-3);
+	}
+	.card-foot:not([data-note]) .card-actions {
+		opacity: 1;
+	}
+	.page-head h1 {
+		font-size: var(--text-lg);
+	}
+	.meter-reset::before {
+		content: "resets ";
+	}
+	/* 390 artboard: the ok · failed line sits under the sparkline, credits are dropped. */
+	.card-meta {
+		order: 1;
+	}
+	.card-meta > .u-meta:first-child:not(:only-child) {
+		display: none;
+	}
+	.card-foot {
+		order: 2;
 	}
 }
 
