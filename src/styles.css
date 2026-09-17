@@ -558,7 +558,7 @@ a.card-action {
 	margin-top: var(--sp-4);
 }
 .ledger-tabs {
-	margin-top: var(--sp-8);
+	margin-top: var(--sp-12);
 	/* Seven dimensions do not fit one row at 390; wrapping beats a horizontal page scroll. */
 	flex-wrap: wrap;
 	row-gap: 0;
@@ -610,7 +610,7 @@ a.card-action {
 	margin-top: var(--sp-3);
 }
 .series-section {
-	margin-top: var(--sp-8);
+	margin-top: var(--sp-12);
 }
 .series-section > .u-label {
 	display: block;
@@ -639,7 +639,7 @@ a.card-action {
 	background: var(--error);
 }
 .history-section {
-	margin-top: var(--sp-12);
+	margin-top: var(--sp-16);
 }
 .history-section .page-head {
 	align-items: center;
