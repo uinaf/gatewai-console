@@ -109,11 +109,7 @@ function LedgerPage() {
 					</button>
 				</form>
 			) : null}
-			<p className="u-meta range-note">
-				{view.range.from.slice(0, 16).replace("T", " ")}z to{" "}
-				{view.range.to.slice(0, 16).replace("T", " ")}z, compared with the range before it.
-				{view.error ? ` collector: ${view.error}` : ""}
-			</p>
+			{view.error ? <p className="u-meta range-note">collector: {view.error}</p> : null}
 
 			<LedgerStats current={view.current} previous={view.previous} />
 

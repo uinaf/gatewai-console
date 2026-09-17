@@ -41,7 +41,6 @@ export function Breakdown({ by, rows }: { by: Dimension; rows: ReadonlyArray<Bre
 							<th data-num>p50</th>
 							<th data-num>p95</th>
 							<th data-num>ttft p50</th>
-							<th data-num>ttft p95</th>
 							<th className="share-head">model share</th>
 						</tr>
 					</thead>
@@ -69,7 +68,6 @@ export function Breakdown({ by, rows }: { by: Dimension; rows: ReadonlyArray<Bre
 								<td data-num>{millis(row.p50)}</td>
 								<td data-num>{millis(row.p95)}</td>
 								<td data-num>{millis(row.ttftP50)}</td>
-								<td data-num>{millis(row.ttftP95)}</td>
 								<td>
 									<div
 										className="u-stack share"

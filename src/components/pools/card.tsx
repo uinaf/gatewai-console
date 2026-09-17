@@ -102,16 +102,18 @@ export function CredentialCard({ credential, now }: { credential: Credential; no
 
 			<Buckets buckets={credential.recentRequests} />
 
-			<footer className="card-foot">
-				<p
-					className="u-meta card-note"
-					role={failure ? "alert" : undefined}
-					data-failure={failure ? "" : undefined}
-					// The cooldown date is formatted in the viewer's zone, which the server cannot know.
-					suppressHydrationWarning
-				>
-					{failure ?? note}
-				</p>
+			<footer className="card-foot" data-note={failure || note ? "" : undefined}>
+				{failure || note ? (
+					<p
+						className="u-meta card-note"
+						role={failure ? "alert" : undefined}
+						data-failure={failure ? "" : undefined}
+						// The cooldown date is formatted in the viewer's zone, which the server cannot know.
+						suppressHydrationWarning
+					>
+						{failure ?? note}
+					</p>
+				) : null}
 				<div className="card-actions">
 					{credential.status === "cooling" ? (
 						<button
