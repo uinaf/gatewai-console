@@ -13,6 +13,7 @@ import {
 	credentialLabels,
 	credentialNames,
 	credentialNamesByAuthIndex,
+	earliestRequestAt,
 	previousRange,
 	quotaHistory,
 	summary,
@@ -51,6 +52,10 @@ interface LedgerLoaded {
 	readonly customRejected: boolean;
 	readonly current: Summary;
 	readonly previous: Summary;
+	/** The previous range is fully inside stored history, so deltas mean something. */
+	readonly comparable: boolean;
+	/** First stored request, for the note when the range is not comparable. */
+	readonly earliest: string | null;
 	readonly by: Dimension;
 	readonly rows: ReadonlyArray<BreakdownRow>;
 	readonly credentials: ReadonlyArray<{ name: string; label: string; provider: string }>;
@@ -96,6 +101,10 @@ export const resolveRange = (
 	};
 };
 
+/** Deltas need the whole previous range inside stored history. */
+export const isComparable = (range: Range, earliest: string | null): boolean =>
+	earliest !== null && previousRange(range).from >= earliest;
+
 const isQuery = (input: unknown): LedgerQuery => {
 	const q = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
 	const preset = (["24h", "7d", "30d", "custom"] as const).find((p) => p === q.preset) ?? "7d";
@@ -136,6 +145,7 @@ export const loadLedger = createServerFn({ method: "GET" })
 						return name ? { ...row, name } : row;
 					});
 					const state = yield* readCollectorState;
+					const earliest = yield* earliestRequestAt;
 					return {
 						ok: true as const,
 						host,
@@ -146,6 +156,8 @@ export const loadLedger = createServerFn({ method: "GET" })
 						customRejected,
 						current: yield* summary(range),
 						previous: yield* summary(previousRange(range)),
+						comparable: isComparable(range, earliest),
+						earliest,
 						by: data.by,
 						rows,
 						credentials,

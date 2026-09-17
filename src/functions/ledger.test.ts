@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { resolveRange } from "#/functions/ledger";
+import { isComparable, resolveRange } from "#/functions/ledger";
 
 const now = Date.parse("2026-09-16T12:00:00Z");
 
@@ -40,4 +40,12 @@ test("a custom range with only one bound is rejected, not silently defaulted", (
 	expect(
 		resolveRange({ preset: "custom", by: "client", to: "2026-09-10" }, now).customRejected,
 	).toBe(true);
+});
+
+test("a range is comparable only when its previous span starts inside stored history", () => {
+	const range = { from: "2026-09-09T12:00:00.000Z", to: "2026-09-16T12:00:00.000Z" };
+	expect(isComparable(range, null)).toBe(false);
+	expect(isComparable(range, "2026-09-05T00:00:00.000Z")).toBe(false);
+	expect(isComparable(range, "2026-09-01T00:00:00.000Z")).toBe(true);
+	expect(isComparable(range, "2026-09-02T12:00:00.000Z")).toBe(true);
 });

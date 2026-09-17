@@ -15,7 +15,16 @@ const HEADINGS: Record<Dimension, string> = {
 	credential: "credential",
 };
 
-export function Breakdown({ by, rows }: { by: Dimension; rows: ReadonlyArray<BreakdownRow> }) {
+export function Breakdown({
+	by,
+	rows,
+	comparable,
+}: {
+	by: Dimension;
+	rows: ReadonlyArray<BreakdownRow>;
+	/** False hides the per-row deltas: the previous range predates collection. */
+	comparable: boolean;
+}) {
 	// Keyed by model and provider: the same model id can be served by two providers.
 	const models = new Map<string, { model: string; provider: string }>();
 	for (const row of rows) for (const s of row.share) models.set(`${s.provider}/${s.model}`, s);
@@ -63,8 +72,12 @@ export function Breakdown({ by, rows }: { by: Dimension; rows: ReadonlyArray<Bre
 								</td>
 								<td data-num>
 									{count(row.requests)}
-									<br />
-									<span className="u-meta">{delta(row.requests, row.previousRequests)}</span>
+									{comparable ? (
+										<>
+											<br />
+											<span className="u-meta">{delta(row.requests, row.previousRequests)}</span>
+										</>
+									) : null}
 								</td>
 								<td data-num data-bad={row.errorRate >= 0.05 || undefined}>
 									{percent(row.errorRate)}
@@ -74,8 +87,12 @@ export function Breakdown({ by, rows }: { by: Dimension; rows: ReadonlyArray<Bre
 									title={`in ${compact(row.tokensInput)} · cached ${compact(row.cached)} · cache write ${compact(row.tokensCacheWrite)} · out ${compact(row.tokensOutput)} · reasoning ${compact(row.tokensReasoning)}`}
 								>
 									{compact(row.tokens)}
-									<br />
-									<span className="u-meta">{delta(row.tokens, row.previousTokens)}</span>
+									{comparable ? (
+										<>
+											<br />
+											<span className="u-meta">{delta(row.tokens, row.previousTokens)}</span>
+										</>
+									) : null}
 								</td>
 								<td data-num>{compact(row.cached)}</td>
 								<td data-num>{millis(row.p50)}</td>

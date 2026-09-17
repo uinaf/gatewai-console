@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 
+import { stamp } from "#/components/alerts/format";
 import { Breakdown } from "#/components/ledger/breakdown";
 import { Fault } from "#/components/pools/fault";
 import { QuotaHistory } from "#/components/ledger/quota-history";
@@ -127,7 +128,13 @@ function LedgerPage() {
 				</p>
 			) : null}
 
-			<LedgerStats current={view.current} previous={view.previous} />
+			{view.comparable ? null : (
+				<p className="u-meta range-note">
+					no previous range to compare: the ledger starts {stamp(view.earliest)}.
+				</p>
+			)}
+
+			<LedgerStats current={view.current} previous={view.previous} comparable={view.comparable} />
 
 			<nav className="u-tabs ledger-tabs" aria-label="dimension">
 				{DIMENSIONS.map((d) => (
@@ -142,7 +149,7 @@ function LedgerPage() {
 					</Link>
 				))}
 			</nav>
-			<Breakdown by={view.by} rows={view.rows} />
+			<Breakdown by={view.by} rows={view.rows} comparable={view.comparable} />
 
 			<section className="history-section">
 				<div className="page-head">

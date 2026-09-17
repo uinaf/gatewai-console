@@ -72,6 +72,14 @@ const percentile = (sorted: ReadonlyArray<number>, p: number): number | null => 
 	return sorted[index] ?? null;
 };
 
+/** First stored request timestamp, or null on an empty ledger. Reads both tables so a pruned ledger still reports its true start. */
+export const earliestRequestAt = Effect.gen(function* () {
+	const sql = yield* SqlClient.SqlClient;
+	const [row] = yield* sql<{ at: string | null }>`SELECT min(timestamp) AS at FROM requests`;
+	const [rolled] = yield* sql<{ at: string | null }>`SELECT min(hour) AS at FROM request_rollups`;
+	return [row?.at, rolled?.at].filter((v): v is string => !!v).sort()[0] ?? null;
+});
+
 export const previousRange = (range: Range): Range => {
 	const span = Date.parse(range.to) - Date.parse(range.from);
 	return { from: new Date(Date.parse(range.from) - span).toISOString(), to: range.from };
