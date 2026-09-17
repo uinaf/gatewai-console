@@ -21,7 +21,7 @@ export function Stats({
 					</span>
 					<span className="u-stat-note stat-detail">
 						{summary.worst
-							? `${summary.worst.label} · resets ${resetsIn(summary.worst.resetsAt, now) || "—"} · ${summary.cooling} cooling`
+							? `resets ${resetsIn(summary.worst.resetsAt, now) || "—"} · ${summary.cooling} cooling`
 							: `${summary.accounts} accounts · no quota signal`}
 					</span>
 				</div>
