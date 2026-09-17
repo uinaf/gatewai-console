@@ -105,7 +105,7 @@ body {
 }
 
 .stats {
-	grid-template-columns: repeat(3, 1fr);
+	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 	margin-top: var(--sp-6);
 }
 .stat-label {
@@ -146,8 +146,11 @@ body {
 	gap: var(--sp-2);
 	margin-left: auto;
 }
+/* The segmented links beside it are 26px; the design-system select is 32px. */
 .pools-sort .u-select {
 	width: 150px;
+	height: 26px;
+	font-size: var(--text-xs);
 }
 .pools-empty {
 	margin-top: var(--sp-6);
@@ -434,6 +437,7 @@ a.card-action {
 	}
 	.stats {
 		margin-top: var(--sp-4);
+		grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
 	}
 	.u-panel-grid.stats > * {
 		padding: var(--sp-3);

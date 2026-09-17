@@ -8,7 +8,9 @@ export function LedgerStats({ current, previous }: { current: Summary; previous:
 		<div className="u-panel-grid stats">
 			<div className="u-stat">
 				<span className="u-label">requests</span>
-				<span className="u-stat-value">{count(current.requests)}</span>
+				<span className="u-stat-value" title={count(current.requests)}>
+					{compact(current.requests)}
+				</span>
 				<span className="u-stat-note">
 					{delta(current.requests, previous.requests) || "no change"} · {count(previous.requests)}{" "}
 					previous
