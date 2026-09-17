@@ -70,18 +70,61 @@ const run = <A, E>(
 	use: (api: ManagementApi["Service"]) => Effect.Effect<A, E>,
 ) => Effect.flatMap(ManagementApi, use).pipe(Effect.provide(layer), Effect.exit, Effect.runPromise);
 
+const xaiBilling = (creditUsagePercent?: number) => ({
+	status: 200,
+	body: {
+		status_code: 200,
+		body: JSON.stringify({
+			config: {
+				currentPeriod: {
+					type: "USAGE_PERIOD_TYPE_WEEKLY",
+					start: "2026-09-13T17:40:10+00:00",
+					end: "2026-09-20T17:40:10+00:00",
+				},
+				...(creditUsagePercent === undefined ? {} : { creditUsagePercent }),
+				onDemandCap: { val: 0 },
+			},
+		}),
+	},
+});
+
 test("auth-files retries a transient failure and normalises the pools", async () => {
-	const { seen, layer } = scripted([{ status: 503 }, { status: 200, body: authFiles }]);
+	const { seen, layer } = scripted([
+		{ status: 503 },
+		{ status: 200, body: authFiles },
+		xaiBilling(),
+		xaiBilling(1),
+	]);
 	const exit = await run(layer, (api) => api.pools);
 	expect(exit._tag).toBe("Success");
 	if (exit._tag !== "Success") return;
 	expect(exit.value.credentials).toHaveLength(7);
-	expect(seen).toHaveLength(2);
+	expect(seen).toHaveLength(4);
 	expect(seen[0]).toMatchObject({
 		method: "GET",
 		url: "http://proxy.test/v0/management/auth-files",
 		authorization: "Bearer test-key",
 	});
+});
+
+test("xai quota comes from grok billing through api-call; a failed read leaves no window", async () => {
+	const { seen, layer } = scripted([
+		{ status: 200, body: authFiles },
+		xaiBilling(1),
+		{ status: 502 },
+	]);
+	const exit = await run(layer, (api) => api.pools);
+	expect(exit._tag).toBe("Success");
+	if (exit._tag !== "Success") return;
+	const calls = seen.filter((s) => s.url.endsWith("/api-call"));
+	expect(calls).toHaveLength(2);
+	expect(calls[0]?.method).toBe("POST");
+	expect(calls[0]?.body).toContain("cli-chat-proxy.grok.com/v1/billing?format=credits");
+	expect(calls[0]?.body).toContain("$TOKEN$");
+	const xai = exit.value.credentials.filter((c) => c.provider === "xai");
+	const windows = xai.map((c) => c.quota.windows.map((w) => [w.label, w.usedPercent, w.resetsAt]));
+	expect(windows).toContainEqual([["weekly", 1, "2026-09-20T17:40:10.000Z"]]);
+	expect(windows).toContainEqual([]);
 });
 
 test("usage-queue pops once and never retries", async () => {

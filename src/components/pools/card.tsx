@@ -24,10 +24,8 @@ const STATUS_DOT: Record<Credential["status"], string> = {
 function footnote(credential: Credential): string | null {
 	const cooldown = credential.cooldowns[0];
 	if (credential.status === "cooling" && cooldown) {
-		const scope = cooldown.model ? ` for ${cooldown.model}` : "";
-		const until = cooldown.until ? ` until ${calendar(cooldown.until)}` : "";
 		// Rendered in the viewer's zone; see card-note's suppressHydrationWarning.
-		return `cooldown${scope}${until}.`;
+		return cooldown.until ? `cooldown until ${calendar(cooldown.until)}.` : "cooling down.";
 	}
 	if (credential.status === "disabled") return "disabled. requests route to the other accounts.";
 	if (credential.status === "error") return credential.statusMessage ?? "gateway reports an error.";
@@ -56,7 +54,6 @@ export function CredentialCard({ credential, now }: { credential: Credential; no
 		: null;
 	const meta: Array<string> = [];
 	if (quota.overage) meta.push(`overage ${quota.overage}`);
-	if (credential.provider === "xai") meta.push("xai reports no quota");
 	const note = footnote(credential);
 
 	return (

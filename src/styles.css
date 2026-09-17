@@ -53,6 +53,22 @@ body {
 	font-size: var(--text-xs);
 	color: var(--fg-subtle);
 }
+/* The meta cluster is smaller than the nav links and would centre a few
+   pixels higher. A zero-width strut at the link size gives the cluster the
+   same line box, so both centre on one baseline. */
+.u-topbar-actions {
+	align-items: baseline;
+	font-size: var(--text-sm);
+}
+.u-topbar-actions::before {
+	content: "\200b";
+}
+.u-topbar-actions .u-dot {
+	align-self: center;
+}
+.topbar-divider {
+	margin-right: var(--sp-2);
+}
 .stamp[data-stale] {
 	color: var(--warn);
 }

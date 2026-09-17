@@ -64,6 +64,9 @@ export function Shell({ host, operator, stamp, title, headExtra, children }: She
 						)}
 					</nav>
 					<div className="u-topbar-actions">
+						<span className="u-sep topbar-divider" aria-hidden="true">
+							|
+						</span>
 						<span className="u-meta">
 							{host}
 							{operator ? <span className="operator"> · {operator}</span> : null}

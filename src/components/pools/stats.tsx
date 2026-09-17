@@ -8,16 +8,9 @@ export function Stats({ summaries }: { summaries: ReadonlyArray<ProviderSummary>
 					<span className="u-label stat-label">
 						<span className="u-dot" data-provider={summary.provider} />
 						{summary.provider}
-						{summary.plan ? <span className="stat-plan"> · {summary.plan}</span> : null}
 					</span>
 					<span className="u-stat-value">
 						{summary.remainingPercent === null ? "—" : `${summary.remainingPercent}%`}
-					</span>
-					<span className="u-stat-note">
-						{summary.remainingPercent === null ? "no quota reported" : "aggregate remaining"}
-						{summary.unreported > 0 && summary.remainingPercent !== null
-							? ` · ${summary.unreported} unreported`
-							: ""}
 					</span>
 					<span className="u-stat-note stat-detail">
 						{summary.accounts} {summary.accounts === 1 ? "account" : "accounts"} · {summary.cooling}{" "}

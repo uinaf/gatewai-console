@@ -9,7 +9,7 @@ import type { AuthFile } from "#/server/management/schema";
 
 type WindowStatus = "allowed" | "limited" | "rejected" | "unknown";
 
-interface QuotaWindow {
+export interface QuotaWindow {
 	readonly label: string;
 	readonly usedPercent: number;
 	readonly resetsAt: string | null;

@@ -23,6 +23,13 @@ import {
 
 import { type Pools, poolsOf } from "#/server/management/credential";
 import {
+	XAI_BILLING_URL,
+	XAI_HEADERS,
+	XaiBilling,
+	type XaiBillingConfig,
+	withXaiBilling,
+} from "#/server/management/xai";
+import {
 	ApiKeys,
 	AuthFiles,
 	LatestVersion,
@@ -33,6 +40,11 @@ import {
 	UsageQueue,
 	UsageRecord,
 } from "#/server/management/schema";
+
+// `POST /api-call`: the proxy performs the request with the credential's own
+// token substituted for `$TOKEN$`. The body comes back as a string.
+const ApiCallResponse = Schema.Struct({ status_code: Schema.Number, body: Schema.String });
+const decodeXaiBilling = Schema.decodeUnknownOption(XaiBilling);
 
 const decodeUsageRecord = Schema.decodeUnknownResult(UsageRecord);
 
@@ -260,9 +272,56 @@ export class ManagementApi extends Context.Service<
 					),
 			);
 
+			// xAI quota lives on grok's billing endpoint, reached through the proxy's
+			// api-call with the credential's token. A failed or malformed read leaves
+			// that credential without windows; it never fails the pools read.
+			const xaiBilling = Effect.fn("ManagementApi.xaiBilling")((authIndex: string) =>
+				consume((client) =>
+					HttpClientRequest.post("/api-call").pipe(
+						HttpClientRequest.bodyJsonUnsafe({
+							auth_index: authIndex,
+							method: "GET",
+							url: XAI_BILLING_URL,
+							header: XAI_HEADERS,
+						}),
+						client.execute,
+						decodeWith(ApiCallResponse),
+					),
+				).pipe(
+					Effect.map((reply): XaiBillingConfig | undefined => {
+						if (reply.status_code < 200 || reply.status_code >= 300) return undefined;
+						try {
+							const parsed = decodeXaiBilling(JSON.parse(reply.body));
+							return parsed._tag === "Some" ? parsed.value.config : undefined;
+						} catch {
+							return undefined;
+						}
+					}),
+					Effect.catch((error) =>
+						Effect.logWarning("xai billing unavailable", error.message).pipe(Effect.as(undefined)),
+					),
+				),
+			);
+
+			const pools = Effect.gen(function* () {
+				const base = poolsOf(yield* authFiles);
+				const xai = base.credentials.filter((credential) => credential.provider === "xai");
+				if (xai.length === 0) return base;
+				const configs = yield* Effect.forEach(
+					xai,
+					(credential) =>
+						Effect.map(
+							xaiBilling(credential.authIndex),
+							(config) => [credential.authIndex, config] as const,
+						),
+					{ concurrency: 4 },
+				);
+				return withXaiBilling(base, new Map(configs), new Date().toISOString());
+			}).pipe(Effect.withSpan("ManagementApi.pools"));
+
 			return ManagementApi.of({
 				authFiles,
-				pools: Effect.map(authFiles, poolsOf),
+				pools,
 				popUsage,
 				apiKeys: read((client) =>
 					client.get("/api-keys").pipe(
