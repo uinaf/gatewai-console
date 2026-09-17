@@ -5,7 +5,17 @@ import { SqlClient } from "effect/unstable/sql";
 // leave the server. Percentiles are computed in process from sorted latencies,
 // which at gateway scale (thousands of rows a day) stays well under budget.
 
-export type Dimension = "client" | "model" | "provider" | "credential";
+export type Dimension =
+	| "client"
+	| "model"
+	| "provider"
+	| "credential"
+	| "effort"
+	| "tier"
+	| "agent";
+
+/** Per-request attributes the hourly rollups do not carry: raw retention only. */
+const RAW_ONLY: ReadonlySet<Dimension> = new Set(["effort", "tier", "agent"]);
 
 export interface Range {
 	readonly from: string;
@@ -58,6 +68,9 @@ const column: Record<Dimension, string> = {
 	model: "model",
 	provider: "provider",
 	credential: "coalesce(auth_index, '')",
+	effort: "coalesce(reasoning_effort, '')",
+	tier: "coalesce(service_tier, '')",
+	agent: "coalesce(user_agent, '')",
 };
 
 // Raw rows live 90 days; older ranges read the hourly rollups, which carry the
@@ -65,6 +78,11 @@ const column: Record<Dimension, string> = {
 const RAW_RETENTION_MS = 90 * 86_400_000;
 const usesRollups = (range: Range, now: number = Date.now()): boolean =>
 	Date.parse(range.from) < now - RAW_RETENTION_MS;
+
+/** Registry label, else the key (clients show a fingerprint); an absent attribute reads as a dash. */
+const labelOf = (by: Dimension, key: string, labels: ReadonlyMap<string, string>): string =>
+	labels.get(key) ??
+	(by === "client" ? key.slice(0, 16) : key || (RAW_ONLY.has(by) ? "—" : "unknown"));
 
 const percentile = (sorted: ReadonlyArray<number>, p: number): number | null => {
 	if (sorted.length === 0) return null;
@@ -121,6 +139,8 @@ interface Totals {
 
 const rolledBreakdown = (by: Dimension, range: Range, labels: ReadonlyMap<string, string>) =>
 	Effect.gen(function* () {
+		// Rollups carry no per-request attributes.
+		if (RAW_ONLY.has(by)) return [] as ReadonlyArray<BreakdownRow>;
 		const sql = yield* SqlClient.SqlClient;
 		const previous = previousRange(range);
 		const key = sql.literal(by === "credential" ? "auth_index" : column[by]);
@@ -144,8 +164,7 @@ const rolledBreakdown = (by: Dimension, range: Range, labels: ReadonlyMap<string
 			const prev = beforeByKey.get(row.key);
 			return {
 				key: row.key,
-				label:
-					labels.get(row.key) ?? (by === "client" ? row.key.slice(0, 16) : row.key || "unknown"),
+				label: labelOf(by, row.key, labels),
 				requests: row.requests,
 				previousRequests: prev?.requests ?? 0,
 				errorRate: row.requests === 0 ? 0 : row.failed / row.requests,
@@ -233,8 +252,7 @@ export const breakdown = (
 			}));
 			return {
 				key: row.key,
-				label:
-					labels.get(row.key) ?? (by === "client" ? row.key.slice(0, 16) : row.key || "unknown"),
+				label: labelOf(by, row.key, labels),
 				requests: row.requests,
 				previousRequests: prev?.requests ?? 0,
 				errorRate: row.requests === 0 ? 0 : row.failed / row.requests,

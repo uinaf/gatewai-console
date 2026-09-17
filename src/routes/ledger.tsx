@@ -12,7 +12,15 @@ import { useNow } from "#/hooks/use-now";
 import type { Dimension } from "#/server/ledger/queries";
 
 const PRESETS = ["24h", "7d", "30d", "custom"] as const;
-const DIMENSIONS = ["client", "model", "provider", "credential"] as const;
+const DIMENSIONS = [
+	"client",
+	"model",
+	"provider",
+	"credential",
+	"effort",
+	"tier",
+	"agent",
+] as const;
 
 export const Route = createFileRoute("/ledger")({
 	validateSearch: (search: Record<string, unknown>): Partial<LedgerQuery> => ({

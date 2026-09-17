@@ -109,7 +109,9 @@ const isQuery = (input: unknown): LedgerQuery => {
 	const q = (typeof input === "object" && input !== null ? input : {}) as Record<string, unknown>;
 	const preset = (["24h", "7d", "30d", "custom"] as const).find((p) => p === q.preset) ?? "7d";
 	const by =
-		(["client", "model", "provider", "credential"] as const).find((d) => d === q.by) ?? "client";
+		(["client", "model", "provider", "credential", "effort", "tier", "agent"] as const).find(
+			(d) => d === q.by,
+		) ?? "client";
 	return {
 		preset,
 		by,

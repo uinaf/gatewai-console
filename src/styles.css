@@ -553,6 +553,9 @@ a.card-action {
 }
 .ledger-tabs {
 	margin-top: var(--sp-8);
+	/* Seven dimensions do not fit one row at 390; wrapping beats a horizontal page scroll. */
+	flex-wrap: wrap;
+	row-gap: 0;
 }
 .ledger-legend {
 	margin-top: var(--sp-4);

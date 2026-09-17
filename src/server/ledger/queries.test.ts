@@ -276,3 +276,40 @@ test("ranges older than raw retention read the rollups, without percentiles", as
 		p95: null,
 	});
 });
+
+test("the raw-only dimensions group by reasoning effort, tier, and agent; rollups return nothing", async () => {
+	const rows = [
+		row({ request_id: "e1", timestamp: "2026-09-15T01:00:00.000Z", reasoning_effort: "high" }),
+		row({ request_id: "e2", timestamp: "2026-09-15T02:00:00.000Z", reasoning_effort: "high" }),
+		row({ request_id: "e3", timestamp: "2026-09-15T03:00:00.000Z", reasoning_effort: "medium" }),
+		row({ request_id: "e4", timestamp: "2026-09-15T04:00:00.000Z", service_tier: "priority" }),
+	];
+	const result = await run(
+		Effect.gen(function* () {
+			yield* insertRequests(rows, ClientLabels.empty());
+			const byEffort = yield* breakdown("effort", range, new Map());
+			const byTier = yield* breakdown("tier", range, new Map());
+			const byAgent = yield* breakdown("agent", range, new Map());
+			const rolled = yield* breakdown(
+				"effort",
+				range,
+				new Map(),
+				Date.parse("2027-01-01T00:00:00.000Z"),
+			);
+			return { byEffort, byTier, byAgent, rolled };
+		}),
+	);
+	const sorted = (rows: ReadonlyArray<{ label: string; requests: number }>) =>
+		rows.map((r) => [r.label, r.requests] as const).sort((a, b) => a[0].localeCompare(b[0]));
+	expect(sorted(result.byEffort)).toEqual([
+		["—", 1],
+		["high", 2],
+		["medium", 1],
+	]);
+	expect(sorted(result.byTier)).toEqual([
+		["—", 3],
+		["priority", 1],
+	]);
+	expect(result.byAgent.map((r) => [r.label, r.requests])).toEqual([["—", 4]]);
+	expect(result.rolled).toEqual([]);
+});

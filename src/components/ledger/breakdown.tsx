@@ -13,6 +13,9 @@ const HEADINGS: Record<Dimension, string> = {
 	model: "model",
 	provider: "provider",
 	credential: "credential",
+	effort: "reasoning effort",
+	tier: "service tier",
+	agent: "user agent",
 };
 
 export function Breakdown({
