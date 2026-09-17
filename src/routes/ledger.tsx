@@ -114,6 +114,14 @@ function LedgerPage() {
 					</button>
 				</form>
 			) : null}
+			{preset === "custom" &&
+			search.from &&
+			search.to &&
+			!view.range.from.startsWith(search.from.slice(0, 10)) ? (
+				<p className="u-meta range-note">
+					that range is empty or inverted; showing the last seven days instead.
+				</p>
+			) : null}
 			{view.error ? <p className="u-meta range-note">collector: {view.error}</p> : null}
 
 			<LedgerStats current={view.current} previous={view.previous} />
