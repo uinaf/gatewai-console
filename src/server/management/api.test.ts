@@ -383,6 +383,69 @@ test("claude quota comes from the oauth usage endpoint through api-call; a faile
 	]);
 });
 
+const upstream429 = {
+	status: 200,
+	body: { status_code: 429, body: "Rate limited. Please try again later." },
+};
+
+test("provider usage reads are reused on the next pools poll", async () => {
+	const { seen, layer } = scriptedPools({
+		authFiles: [
+			{ status: 200, body: authFiles },
+			{ status: 200, body: authFiles },
+		],
+		xai: [xaiBilling(1), xaiBilling(1)],
+		codex: [codexUsage(0), codexUsage(0)],
+		claude: [
+			claudeUsage({ fiveHour: 10 }),
+			claudeUsage({ fiveHour: 10 }),
+			claudeUsage({ fiveHour: 10 }),
+		],
+	});
+	const exit = await run(layer, (api) =>
+		Effect.gen(function* () {
+			const first = yield* api.pools;
+			const second = yield* api.pools;
+			return { first, second };
+		}),
+	);
+	expect(exit._tag).toBe("Success");
+	if (exit._tag !== "Success") return;
+	expect(seen.filter((s) => s.url.endsWith("/auth-files"))).toHaveLength(2);
+	expect(seen.filter((s) => s.body.includes("anthropic.com"))).toHaveLength(3);
+	expect(seen.filter((s) => s.body.includes("grok.com"))).toHaveLength(2);
+	expect(seen.filter((s) => s.body.includes("wham/usage"))).toHaveLength(2);
+	expect(exit.value.second.credentials).toHaveLength(7);
+});
+
+test("a 429 from oauth usage keeps header windows and is not refetched", async () => {
+	const { seen, layer } = scriptedPools({
+		authFiles: [
+			{ status: 200, body: authFiles },
+			{ status: 200, body: authFiles },
+		],
+		claude: [upstream429, upstream429, upstream429],
+	});
+	const exit = await run(layer, (api) =>
+		Effect.gen(function* () {
+			const first = yield* api.pools;
+			const second = yield* api.pools;
+			return { first, second };
+		}),
+	);
+	expect(exit._tag).toBe("Success");
+	if (exit._tag !== "Success") return;
+	expect(seen.filter((s) => s.body.includes("anthropic.com"))).toHaveLength(3);
+	const fallback = exit.value.second.credentials.find(
+		(c) => c.name === "claude-two@example.com.json",
+	);
+	expect(fallback?.quota.windows.map((w) => [w.label, w.usedPercent, w.status])).toEqual([
+		["5-hour", 17, "allowed"],
+		["weekly", 50, "allowed"],
+		["weekly fable", 100, "rejected"],
+	]);
+});
+
 test("usage-queue pops once and never retries", async () => {
 	const { seen, layer } = scripted([{ status: 503 }, { status: 200, body: usageQueue }]);
 	const exit = await run(layer, (api) => api.popUsage(50));

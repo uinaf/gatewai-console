@@ -286,38 +286,57 @@ export class ManagementApi extends Context.Service<
 					),
 			);
 
-			// Provider usage endpoints reached through the proxy's api-call, which
-			// substitutes the credential's own token. A failed or malformed read
-			// leaves that credential without windows; it never fails the pools read.
-			// Bodies are never logged: they carry account identifiers.
+			// Anthropic 429s oauth usage if we poll it every snapshot. One cached
+			// read per credential is shared by the collector and the pools page.
+			const live = new Map<string, Effect.Effect<unknown>>();
+
 			const apiCall = <A>(
 				name: string,
 				authIndex: string,
 				url: string,
 				header: Readonly<Record<string, string>>,
 				decode: (body: unknown) => { _tag: "Some"; value: A } | { _tag: "None" },
-			) =>
-				read((client) =>
-					HttpClientRequest.post("/api-call").pipe(
-						HttpClientRequest.bodyJsonUnsafe({ auth_index: authIndex, method: "GET", url, header }),
-						client.execute,
-						decodeWith(ApiCallResponse),
-					),
-				).pipe(
-					Effect.map((reply): A | undefined => {
-						if (reply.status_code < 200 || reply.status_code >= 300) return undefined;
-						try {
-							const parsed = decode(JSON.parse(reply.body));
-							return parsed._tag === "Some" ? parsed.value : undefined;
-						} catch {
-							return undefined;
-						}
-					}),
-					Effect.catch((error) =>
-						Effect.logWarning(`${name} unavailable`, error.message).pipe(Effect.as(undefined)),
-					),
-					Effect.withSpan(`ManagementApi.${name}`),
-				);
+			): Effect.Effect<A | undefined> => {
+				const key = `${name}:${authIndex}`;
+				return Effect.gen(function* () {
+					let cached = live.get(key) as Effect.Effect<A | undefined> | undefined;
+					if (!cached) {
+						const task = read((client) =>
+							HttpClientRequest.post("/api-call").pipe(
+								HttpClientRequest.bodyJsonUnsafe({
+									auth_index: authIndex,
+									method: "GET",
+									url,
+									header,
+								}),
+								client.execute,
+								decodeWith(ApiCallResponse),
+							),
+						).pipe(
+							Effect.tap((reply) =>
+								reply.status_code === 429 ? Effect.logWarning(`${name} rate limited`) : Effect.void,
+							),
+							Effect.map((reply): A | undefined => {
+								if (reply.status_code < 200 || reply.status_code >= 300) return undefined;
+								try {
+									const parsed = decode(JSON.parse(reply.body));
+									return parsed._tag === "Some" ? parsed.value : undefined;
+								} catch {
+									return undefined;
+								}
+							}),
+							Effect.catch((error) =>
+								Effect.logWarning(`${name} unavailable`, error.message).pipe(
+									Effect.as(undefined as A | undefined),
+								),
+							),
+						);
+						cached = yield* Effect.cachedWithTTL(task, Duration.minutes(5));
+						live.set(key, cached);
+					}
+					return yield* cached;
+				}).pipe(Effect.withSpan(`ManagementApi.${name}`));
+			};
 
 			const xaiBilling = (authIndex: string) =>
 				apiCall("xaiBilling", authIndex, XAI_BILLING_URL, XAI_HEADERS, (body) => {
