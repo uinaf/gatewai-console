@@ -34,6 +34,7 @@ import {
 	withCodexUsage,
 } from "#/server/management/codex";
 import { type Pools, poolsOf } from "#/server/management/credential";
+import { isFresh, type LiveSlot, remember } from "#/server/management/live-read";
 import {
 	XAI_BILLING_URL,
 	XAI_HEADERS,
@@ -286,9 +287,10 @@ export class ManagementApi extends Context.Service<
 					),
 			);
 
-			// Anthropic 429s oauth usage if we poll it every snapshot. One cached
-			// read per credential is shared by the collector and the pools page.
-			const live = new Map<string, Effect.Effect<unknown>>();
+			// One slot per credential, shared by every provider. Success is reused
+			// for a few minutes; 429s keep the last value and back off.
+			const live = new Map<string, LiveSlot<unknown>>();
+			const inflight = new Map<string, Effect.Effect<unknown>>();
 
 			const apiCall = <A>(
 				name: string,
@@ -299,8 +301,11 @@ export class ManagementApi extends Context.Service<
 			): Effect.Effect<A | undefined> => {
 				const key = `${name}:${authIndex}`;
 				return Effect.gen(function* () {
-					let cached = live.get(key) as Effect.Effect<A | undefined> | undefined;
-					if (!cached) {
+					const slot = live.get(key) as LiveSlot<A> | undefined;
+					if (isFresh(slot, Date.now())) return slot.value;
+
+					let pending = inflight.get(key) as Effect.Effect<A | undefined> | undefined;
+					if (!pending) {
 						const task = read((client) =>
 							HttpClientRequest.post("/api-call").pipe(
 								HttpClientRequest.bodyJsonUnsafe({
@@ -317,24 +322,40 @@ export class ManagementApi extends Context.Service<
 								reply.status_code === 429 ? Effect.logWarning(`${name} rate limited`) : Effect.void,
 							),
 							Effect.map((reply): A | undefined => {
-								if (reply.status_code < 200 || reply.status_code >= 300) return undefined;
+								const at = Date.now();
+								const prev = live.get(key) as LiveSlot<A> | undefined;
+								if (reply.status_code === 429) {
+									const next = remember(at, prev, "limited", prev?.value);
+									live.set(key, next);
+									return next.value;
+								}
+								if (reply.status_code < 200 || reply.status_code >= 300) {
+									live.set(key, remember(at, prev, "miss", undefined));
+									return prev?.value;
+								}
 								try {
 									const parsed = decode(JSON.parse(reply.body));
-									return parsed._tag === "Some" ? parsed.value : undefined;
+									const value = parsed._tag === "Some" ? parsed.value : undefined;
+									const next = remember(at, prev, "ok", value);
+									live.set(key, next);
+									return next.value;
 								} catch {
-									return undefined;
+									live.set(key, remember(at, prev, "miss", undefined));
+									return prev?.value;
 								}
 							}),
-							Effect.catch((error) =>
-								Effect.logWarning(`${name} unavailable`, error.message).pipe(
-									Effect.as(undefined as A | undefined),
-								),
-							),
+							Effect.catch((error) => {
+								const prev = live.get(key) as LiveSlot<A> | undefined;
+								live.set(key, remember(Date.now(), prev, "miss", undefined));
+								return Effect.logWarning(`${name} unavailable`, error.message).pipe(
+									Effect.as(prev?.value),
+								);
+							}),
 						);
-						cached = yield* Effect.cachedWithTTL(task, Duration.minutes(5));
-						live.set(key, cached);
+						pending = yield* Effect.cachedWithTTL(task, Duration.zero);
+						inflight.set(key, pending);
 					}
-					return yield* cached;
+					return yield* pending;
 				}).pipe(Effect.withSpan(`ManagementApi.${name}`));
 			};
 
