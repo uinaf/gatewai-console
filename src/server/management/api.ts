@@ -22,6 +22,12 @@ import {
 } from "effect/unstable/http";
 
 import {
+	CLAUDE_HEADERS,
+	CLAUDE_USAGE_URL,
+	ClaudeUsage,
+	withClaudeUsage,
+} from "#/server/management/claude";
+import {
 	CODEX_USAGE_URL,
 	CodexUsage,
 	codexHeaders,
@@ -52,6 +58,7 @@ import {
 const ApiCallResponse = Schema.Struct({ status_code: Schema.Number, body: Schema.String });
 const decodeXaiBilling = Schema.decodeUnknownOption(XaiBilling);
 const decodeCodexUsage = Schema.decodeUnknownOption(CodexUsage);
+const decodeClaudeUsage = Schema.decodeUnknownOption(ClaudeUsage);
 
 const decodeUsageRecord = Schema.decodeUnknownResult(UsageRecord);
 
@@ -290,7 +297,7 @@ export class ManagementApi extends Context.Service<
 				header: Readonly<Record<string, string>>,
 				decode: (body: unknown) => { _tag: "Some"; value: A } | { _tag: "None" },
 			) =>
-				consume((client) =>
+				read((client) =>
 					HttpClientRequest.post("/api-call").pipe(
 						HttpClientRequest.bodyJsonUnsafe({ auth_index: authIndex, method: "GET", url, header }),
 						client.execute,
@@ -329,37 +336,57 @@ export class ManagementApi extends Context.Service<
 					decodeCodexUsage,
 				);
 
+			const claudeUsage = (authIndex: string) =>
+				apiCall("claudeUsage", authIndex, CLAUDE_USAGE_URL, CLAUDE_HEADERS, decodeClaudeUsage);
+
 			const pools = Effect.gen(function* () {
 				const files = yield* authFiles;
 				const base = poolsOf(files);
 				const observedAt = new Date().toISOString();
 				const xai = base.credentials.filter((credential) => credential.provider === "xai");
+				const claude = base.credentials.filter((credential) => credential.provider === "claude");
 				const codex = files.files.flatMap((file) => {
 					const accountId = file.id_token?.chatgpt_account_id;
 					return file.provider === "codex" && accountId
 						? [{ authIndex: file.auth_index, accountId }]
 						: [];
 				});
-				const [billing, usage] = yield* Effect.all([
-					Effect.forEach(
-						xai,
-						(credential) =>
-							Effect.map(
-								xaiBilling(credential.authIndex),
-								(config) => [credential.authIndex, config] as const,
-							),
-						{ concurrency: 4 },
+				const [billing, usage, anthropic] = yield* Effect.all(
+					[
+						Effect.forEach(
+							xai,
+							(credential) =>
+								Effect.map(
+									xaiBilling(credential.authIndex),
+									(config) => [credential.authIndex, config] as const,
+								),
+							{ concurrency: 4 },
+						),
+						Effect.forEach(
+							codex,
+							({ authIndex, accountId }) =>
+								Effect.map(codexUsage(authIndex, accountId), (read) => [authIndex, read] as const),
+							{ concurrency: 4 },
+						),
+						Effect.forEach(
+							claude,
+							(credential) =>
+								Effect.map(
+									claudeUsage(credential.authIndex),
+									(read) => [credential.authIndex, read] as const,
+								),
+							{ concurrency: 4 },
+						),
+					],
+					{ concurrency: "unbounded" },
+				);
+				return withClaudeUsage(
+					withCodexUsage(
+						withXaiBilling(base, new Map(billing), observedAt),
+						new Map(usage),
+						observedAt,
 					),
-					Effect.forEach(
-						codex,
-						({ authIndex, accountId }) =>
-							Effect.map(codexUsage(authIndex, accountId), (read) => [authIndex, read] as const),
-						{ concurrency: 4 },
-					),
-				]);
-				return withCodexUsage(
-					withXaiBilling(base, new Map(billing), observedAt),
-					new Map(usage),
+					new Map(anthropic),
 					observedAt,
 				);
 			}).pipe(Effect.withSpan("ManagementApi.pools"));

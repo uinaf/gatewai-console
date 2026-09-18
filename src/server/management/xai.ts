@@ -31,6 +31,14 @@ const XaiBillingConfig = Schema.Struct({
 	creditUsagePercent: Schema.optional(Schema.Union([Schema.Number, Schema.String])),
 	onDemandCap: Schema.optional(Cents),
 	onDemandUsed: Schema.optional(Cents),
+	productUsage: Schema.optional(
+		Schema.Array(
+			Schema.Struct({
+				product: Schema.optional(Schema.String),
+				usagePercent: Schema.optional(Schema.Union([Schema.Number, Schema.String])),
+			}),
+		),
+	),
 });
 export type XaiBillingConfig = typeof XaiBillingConfig.Type;
 
@@ -41,9 +49,25 @@ const percent = (value: number | string | undefined): number => {
 	return n === undefined || !Number.isFinite(n) ? 0 : Math.min(100, Math.max(0, Math.round(n)));
 };
 
-/** The weekly window from a billing config; null when the payload carries no period. */
+const productWindows = (config: XaiBillingConfig | undefined): ReadonlyArray<QuotaWindow> =>
+	(config?.productUsage ?? []).flatMap((item) => {
+		const product = item.product?.trim();
+		if (!product) return [];
+		const used = percent(item.usagePercent);
+		return [
+			{
+				label: product.toLowerCase(),
+				usedPercent: used,
+				resetsAt: null,
+				status: used >= 100 ? "limited" : "allowed",
+			},
+		];
+	});
+
+/** Weekly period plus per-product rows (GrokBuild); empty when the payload carries neither. */
 const xaiWindows = (config: XaiBillingConfig | undefined): ReadonlyArray<QuotaWindow> => {
-	if (!config?.currentPeriod) return [];
+	const products = productWindows(config);
+	if (!config?.currentPeriod) return products;
 	const used = percent(config.creditUsagePercent);
 	const end = config.currentPeriod.end;
 	return [
@@ -53,6 +77,7 @@ const xaiWindows = (config: XaiBillingConfig | undefined): ReadonlyArray<QuotaWi
 			resetsAt: end && Number.isFinite(Date.parse(end)) ? new Date(end).toISOString() : null,
 			status: used >= 100 ? "limited" : "allowed",
 		},
+		...products,
 	];
 };
 
