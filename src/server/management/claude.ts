@@ -39,9 +39,9 @@ const ClaudeLimit = Schema.Struct({
 });
 
 const ExtraUsage = Schema.Struct({
-	is_enabled: Schema.optional(Schema.Boolean),
-	monthly_limit: Schema.optional(Schema.Number),
-	used_credits: Schema.optional(Schema.Number),
+	is_enabled: Schema.optional(Schema.NullOr(Schema.Boolean)),
+	monthly_limit: Schema.optional(Schema.NullOr(Schema.Number)),
+	used_credits: Schema.optional(Schema.NullOr(Schema.Number)),
 });
 
 export const ClaudeUsage = Schema.Struct({
@@ -121,10 +121,10 @@ const claudeWindows = (usage: ClaudeUsage | undefined): ReadonlyArray<QuotaWindo
 const onDemandOf = (usage: ClaudeUsage | undefined): Quota["onDemand"] => {
 	const extra = usage?.extra_usage;
 	const cap = extra?.monthly_limit;
-	if (!extra?.is_enabled || cap === undefined || !Number.isFinite(cap) || cap <= 0) return null;
+	if (!extra?.is_enabled || cap == null || !Number.isFinite(cap) || cap <= 0) return null;
 	const used = extra.used_credits;
 	return {
-		usedCents: used !== undefined && Number.isFinite(used) ? Math.max(0, used) : 0,
+		usedCents: used != null && Number.isFinite(used) ? Math.max(0, used) : 0,
 		capCents: cap,
 	};
 };
