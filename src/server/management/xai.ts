@@ -52,10 +52,8 @@ const percent = (value: number | string | undefined): number => {
 const productWindows = (config: XaiBillingConfig | undefined): ReadonlyArray<QuotaWindow> =>
 	(config?.productUsage ?? []).flatMap((item) => {
 		const product = item.product?.trim();
-		const raw = item.usagePercent;
-		const n = typeof raw === "string" ? Number(raw) : raw;
-		if (!product || n === undefined || !Number.isFinite(n)) return [];
-		const used = percent(n);
+		if (!product) return [];
+		const used = percent(item.usagePercent);
 		return [
 			{
 				label: product.toLowerCase(),

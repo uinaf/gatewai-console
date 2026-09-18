@@ -297,7 +297,7 @@ export class ManagementApi extends Context.Service<
 				header: Readonly<Record<string, string>>,
 				decode: (body: unknown) => { _tag: "Some"; value: A } | { _tag: "None" },
 			) =>
-				consume((client) =>
+				read((client) =>
 					HttpClientRequest.post("/api-call").pipe(
 						HttpClientRequest.bodyJsonUnsafe({ auth_index: authIndex, method: "GET", url, header }),
 						client.execute,
@@ -351,32 +351,35 @@ export class ManagementApi extends Context.Service<
 						? [{ authIndex: file.auth_index, accountId }]
 						: [];
 				});
-				const [billing, usage, anthropic] = yield* Effect.all([
-					Effect.forEach(
-						xai,
-						(credential) =>
-							Effect.map(
-								xaiBilling(credential.authIndex),
-								(config) => [credential.authIndex, config] as const,
-							),
-						{ concurrency: 4 },
-					),
-					Effect.forEach(
-						codex,
-						({ authIndex, accountId }) =>
-							Effect.map(codexUsage(authIndex, accountId), (read) => [authIndex, read] as const),
-						{ concurrency: 4 },
-					),
-					Effect.forEach(
-						claude,
-						(credential) =>
-							Effect.map(
-								claudeUsage(credential.authIndex),
-								(read) => [credential.authIndex, read] as const,
-							),
-						{ concurrency: 4 },
-					),
-				]);
+				const [billing, usage, anthropic] = yield* Effect.all(
+					[
+						Effect.forEach(
+							xai,
+							(credential) =>
+								Effect.map(
+									xaiBilling(credential.authIndex),
+									(config) => [credential.authIndex, config] as const,
+								),
+							{ concurrency: 4 },
+						),
+						Effect.forEach(
+							codex,
+							({ authIndex, accountId }) =>
+								Effect.map(codexUsage(authIndex, accountId), (read) => [authIndex, read] as const),
+							{ concurrency: 4 },
+						),
+						Effect.forEach(
+							claude,
+							(credential) =>
+								Effect.map(
+									claudeUsage(credential.authIndex),
+									(read) => [credential.authIndex, read] as const,
+								),
+							{ concurrency: 4 },
+						),
+					],
+					{ concurrency: "unbounded" },
+				);
 				return withClaudeUsage(
 					withCodexUsage(
 						withXaiBilling(base, new Map(billing), observedAt),
