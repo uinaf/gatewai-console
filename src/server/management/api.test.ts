@@ -267,7 +267,10 @@ test("xai quota comes from grok billing through api-call; a failed read leaves n
 	expect(calls[0]?.body).toContain("$TOKEN$");
 	const xai = exit.value.credentials.filter((c) => c.provider === "xai");
 	const windows = xai.map((c) => c.quota.windows.map((w) => [w.label, w.usedPercent, w.resetsAt]));
-	expect(windows).toContainEqual([["weekly", 1, "2026-09-20T17:40:10.000Z"]]);
+	expect(windows).toContainEqual([
+		["weekly", 1, "2026-09-20T17:40:10.000Z"],
+		["grokbuild", 0, null],
+	]);
 	expect(windows).toContainEqual([]);
 });
 

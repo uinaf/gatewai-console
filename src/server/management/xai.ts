@@ -64,10 +64,16 @@ const productWindows = (config: XaiBillingConfig | undefined): ReadonlyArray<Quo
 		];
 	});
 
-/** Weekly period plus per-product rows (GrokBuild); empty when the payload carries neither. */
+const withGrokbuild = (products: ReadonlyArray<QuotaWindow>): ReadonlyArray<QuotaWindow> =>
+	products.some((window) => window.label === "grokbuild")
+		? products
+		: [...products, { label: "grokbuild", usedPercent: 0, resetsAt: null, status: "allowed" }];
+
+/** Weekly period plus GrokBuild; a missing product row is an empty window, not an omitted one. */
 const xaiWindows = (config: XaiBillingConfig | undefined): ReadonlyArray<QuotaWindow> => {
-	const products = productWindows(config);
-	if (!config?.currentPeriod) return products;
+	if (!config) return [];
+	const products = withGrokbuild(productWindows(config));
+	if (!config.currentPeriod) return products;
 	const used = percent(config.creditUsagePercent);
 	const end = config.currentPeriod.end;
 	return [
