@@ -67,6 +67,20 @@ test("the flagship weekly label follows the snapshot that carries 7d_oi, not key
 	);
 });
 
+test("a rate-limit json status_message is limited, not the blob", () => {
+	const base = files.files.find((file) => file.name === "claude-one@example.com.json");
+	if (!base) throw new Error("fixture missing claude-one");
+	const credential = credentialOf({
+		...base,
+		status: "error",
+		unavailable: true,
+		status_message:
+			'{"type":"error","error":{"type":"rate_limit_error","message":"Rate limited"},"request_id":"req_011CfAg2ALoS8HLC5vCfhLy"}',
+	});
+	expect(credential.status).toBe("limited");
+	expect(credential.statusMessage).toBe("rate limited.");
+});
+
 test("xai reports counts without windows", () => {
 	const credential = byName("xai-two@example.com.json");
 	expect(credential.quota.windows).toEqual([]);

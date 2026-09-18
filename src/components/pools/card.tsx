@@ -19,6 +19,7 @@ const STATUS_DOT: Record<Credential["status"], string> = {
 	active: "u-dot u-dot--ok",
 	cooling: "u-dot u-dot--error",
 	disabled: "u-dot",
+	limited: "u-dot u-dot--warn",
 	error: "u-dot u-dot--warn",
 };
 
@@ -33,6 +34,7 @@ function footnote(credential: Credential): string | null {
 		return `${parts.join(" · ")}.`;
 	}
 	if (credential.status === "disabled") return "disabled. requests route to the other accounts.";
+	if (credential.status === "limited") return credential.statusMessage ?? "rate limited.";
 	if (credential.status === "error") return credential.statusMessage ?? "gateway reports an error.";
 	return null;
 }

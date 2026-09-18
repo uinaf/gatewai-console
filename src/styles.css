@@ -216,7 +216,8 @@ body {
 .card-status[data-status="cooling"] {
 	color: var(--error);
 }
-.card-status[data-status="error"] {
+.card-status[data-status="error"],
+.card-status[data-status="limited"] {
 	color: var(--warn);
 }
 
