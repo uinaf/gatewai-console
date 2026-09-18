@@ -70,7 +70,11 @@ const run = <A, E>(
 	use: (api: ManagementApi["Service"]) => Effect.Effect<A, E>,
 ) => Effect.flatMap(ManagementApi, use).pipe(Effect.provide(layer), Effect.exit, Effect.runPromise);
 
-const xaiBilling = (creditUsagePercent?: number, onDemand?: { cap: number; used?: number }) => ({
+const xaiBilling = (
+	creditUsagePercent?: number,
+	onDemand?: { cap: number; used?: number },
+	productUsage?: ReadonlyArray<{ product: string; usagePercent: number }>,
+) => ({
 	status: 200,
 	body: {
 		status_code: 200,
@@ -84,6 +88,7 @@ const xaiBilling = (creditUsagePercent?: number, onDemand?: { cap: number; used?
 				...(creditUsagePercent === undefined ? {} : { creditUsagePercent }),
 				onDemandCap: { val: onDemand?.cap ?? 0 },
 				...(onDemand?.used === undefined ? {} : { onDemandUsed: { val: onDemand.used } }),
+				...(productUsage === undefined ? {} : { productUsage }),
 			},
 		}),
 	},
@@ -113,20 +118,134 @@ const codexUsage = (usedPercent: number) => ({
 	},
 });
 
+const claudeUsage = (windows: {
+	fiveHour?: number;
+	weekly?: number;
+	fable?: number;
+	extra?: { used: number; cap: number };
+}) => ({
+	status: 200,
+	body: {
+		status_code: 200,
+		body: JSON.stringify({
+			five_hour:
+				windows.fiveHour === undefined
+					? undefined
+					: { utilization: windows.fiveHour, resets_at: "2026-09-18T12:00:00Z" },
+			seven_day:
+				windows.weekly === undefined
+					? undefined
+					: { utilization: windows.weekly, resets_at: "2026-09-22T08:00:00Z" },
+			limits:
+				windows.fable === undefined
+					? undefined
+					: [
+							{
+								kind: "weekly_scoped",
+								percent: windows.fable,
+								resets_at: "2026-09-22T08:00:00Z",
+								is_active: true,
+								scope: { model: { display_name: "Fable 5" } },
+							},
+						],
+			extra_usage:
+				windows.extra === undefined
+					? undefined
+					: {
+							is_enabled: true,
+							used_credits: windows.extra.used,
+							monthly_limit: windows.extra.cap,
+						},
+		}),
+	},
+});
+
+const take = (queue: Reply[]): Reply => queue.shift() ?? { status: 500 };
+
+// Pools fans out api-call by provider in parallel, so replies are keyed by the
+// upstream URL in the body rather than call order.
+const scriptedPools = (
+	queues: {
+		authFiles?: Reply[];
+		xai?: Reply[];
+		codex?: Reply[];
+		claude?: Reply[];
+	},
+	env: Record<string, string> = {},
+) => {
+	const authQ = [...(queues.authFiles ?? [{ status: 200, body: authFiles }])];
+	const xaiQ = [...(queues.xai ?? [])];
+	const codexQ = [...(queues.codex ?? [])];
+	const claudeQ = [...(queues.claude ?? [])];
+	const seen: Array<Seen> = [];
+	const client = HttpClient.make((request, url) => {
+		seen.push({
+			method: request.method,
+			url: url.toString(),
+			authorization: request.headers.authorization,
+			body: bodyText(request),
+		});
+		const href = url.toString();
+		const body = bodyText(request);
+		const reply = href.endsWith("/auth-files")
+			? take(authQ)
+			: body.includes("anthropic.com")
+				? take(claudeQ)
+				: body.includes("wham/usage")
+					? take(codexQ)
+					: body.includes("grok.com")
+						? take(xaiQ)
+						: { status: 500 };
+		if (reply === "hang") return Effect.never;
+		if (reply === "unreachable") {
+			return Effect.fail(
+				new HttpClientError.HttpClientError({
+					reason: new HttpClientError.TransportError({ request, description: "ECONNREFUSED" }),
+				}),
+			);
+		}
+		return Effect.succeed(
+			HttpClientResponse.fromWeb(
+				request,
+				new Response(JSON.stringify(reply.body ?? {}), {
+					status: reply.status,
+					headers: { "content-type": "application/json" },
+				}),
+			),
+		);
+	});
+	const layer = ManagementApi.layerNoDeps.pipe(
+		Layer.provide(Layer.succeed(HttpClient.HttpClient, client)),
+		Layer.provide(
+			ConfigProvider.layer(
+				ConfigProvider.fromUnknown({
+					GATEWAI_MANAGEMENT_URL: "http://proxy.test/v0/management",
+					GATEWAI_MANAGEMENT_KEY: "test-key",
+					GATEWAI_MANAGEMENT_TIMEOUT: "50 millis",
+					...env,
+				}),
+			),
+		),
+	);
+	return { seen, layer };
+};
+
 test("auth-files retries a transient failure and normalises the pools", async () => {
-	const { seen, layer } = scripted([
-		{ status: 503 },
-		{ status: 200, body: authFiles },
-		xaiBilling(),
-		xaiBilling(1),
-		codexUsage(0),
-		codexUsage(0),
-	]);
+	const { seen, layer } = scriptedPools({
+		authFiles: [{ status: 503 }, { status: 200, body: authFiles }],
+		xai: [xaiBilling(), xaiBilling(1)],
+		codex: [codexUsage(0), codexUsage(0)],
+		claude: [
+			claudeUsage({ fiveHour: 10 }),
+			claudeUsage({ fiveHour: 10 }),
+			claudeUsage({ fiveHour: 10 }),
+		],
+	});
 	const exit = await run(layer, (api) => api.pools);
 	expect(exit._tag).toBe("Success");
 	if (exit._tag !== "Success") return;
 	expect(exit.value.credentials).toHaveLength(7);
-	expect(seen).toHaveLength(6);
+	expect(seen).toHaveLength(9);
 	expect(seen[0]).toMatchObject({
 		method: "GET",
 		url: "http://proxy.test/v0/management/auth-files",
@@ -135,11 +254,9 @@ test("auth-files retries a transient failure and normalises the pools", async ()
 });
 
 test("xai quota comes from grok billing through api-call; a failed read leaves no window", async () => {
-	const { seen, layer } = scripted([
-		{ status: 200, body: authFiles },
-		xaiBilling(1),
-		{ status: 502 },
-	]);
+	const { seen, layer } = scriptedPools({
+		xai: [xaiBilling(1), { status: 502 }],
+	});
 	const exit = await run(layer, (api) => api.pools);
 	expect(exit._tag).toBe("Success");
 	if (exit._tag !== "Success") return;
@@ -156,7 +273,7 @@ test("xai quota comes from grok billing through api-call; a failed read leaves n
 
 test("xai on-demand spend is carried when the cap is positive, null otherwise", async () => {
 	const onDemandOf = async (...replies: Array<ReturnType<typeof xaiBilling>>) => {
-		const { layer } = scripted([{ status: 200, body: authFiles }, ...replies]);
+		const { layer } = scriptedPools({ xai: replies });
 		const exit = await run(layer, (api) => api.pools);
 		expect(exit._tag).toBe("Success");
 		if (exit._tag !== "Success") return [];
@@ -175,14 +292,26 @@ test("xai on-demand spend is carried when the cap is positive, null otherwise", 
 	]);
 });
 
-test("codex quota comes from the chatgpt usage endpoint through api-call; a failed read keeps the header windows", async () => {
-	const { seen, layer } = scripted([
-		{ status: 200, body: authFiles },
-		xaiBilling(),
-		xaiBilling(),
-		codexUsage(89),
-		{ status: 502 },
+test("xai product usage becomes extra windows next to the weekly period", async () => {
+	const { layer } = scriptedPools({
+		xai: [xaiBilling(1, undefined, [{ product: "GrokBuild", usagePercent: 1 }]), xaiBilling(0)],
+	});
+	const exit = await run(layer, (api) => api.pools);
+	expect(exit._tag).toBe("Success");
+	if (exit._tag !== "Success") return;
+	const xai = exit.value.credentials.filter((c) => c.provider === "xai");
+	const windows = xai.map((c) => c.quota.windows.map((w) => [w.label, w.usedPercent]));
+	expect(windows).toContainEqual([
+		["weekly", 1],
+		["grokbuild", 1],
 	]);
+	expect(windows).toContainEqual([["weekly", 0]]);
+});
+
+test("codex quota comes from the chatgpt usage endpoint through api-call; a failed read keeps the header windows", async () => {
+	const { seen, layer } = scriptedPools({
+		codex: [codexUsage(89), { status: 502 }],
+	});
 	const exit = await run(layer, (api) => api.pools);
 	expect(exit._tag).toBe("Success");
 	if (exit._tag !== "Success") return;
@@ -198,6 +327,51 @@ test("codex quota comes from the chatgpt usage endpoint through api-call; a fail
 	const fallback = codex.find((c) => c.name === "codex-two@example.com.json");
 	expect(fallback?.quota.windows.length).toBeGreaterThan(0);
 	expect(fallback?.quota.windows.map((w) => w.usedPercent)).not.toContain(89);
+});
+
+test("claude quota comes from the oauth usage endpoint through api-call; a failed read keeps the header windows", async () => {
+	const { seen, layer } = scriptedPools({
+		claude: [
+			claudeUsage({ fiveHour: 45, weekly: 50, fable: 16, extra: { used: 0, cap: 5000 } }),
+			{ status: 502 },
+			claudeUsage({ fiveHour: 0, weekly: 61, fable: 100 }),
+		],
+	});
+	const exit = await run(layer, (api) => api.pools);
+	expect(exit._tag).toBe("Success");
+	if (exit._tag !== "Success") return;
+	const calls = seen.filter((s) => s.url.endsWith("/api-call") && s.body.includes("anthropic.com"));
+	expect(calls).toHaveLength(3);
+	expect(calls[0]?.body).toContain("api.anthropic.com/api/oauth/usage");
+	expect(calls[0]?.body).toContain("$TOKEN$");
+	expect(calls[0]?.body).toContain("oauth-2025-04-20");
+	const claude = Object.fromEntries(
+		exit.value.credentials.filter((c) => c.provider === "claude").map((c) => [c.name, c]),
+	);
+	expect(
+		claude["claude-one@example.com.json"]?.quota.windows.map((w) => [w.label, w.usedPercent]),
+	).toEqual([
+		["5-hour", 45],
+		["weekly", 50],
+		["weekly fable", 16],
+	]);
+	expect(claude["claude-one@example.com.json"]?.quota.onDemand).toEqual({
+		usedCents: 0,
+		capCents: 5000,
+	});
+	expect(
+		claude["claude-dev@example.com.json"]?.quota.windows.map((w) => [w.label, w.usedPercent]),
+	).toEqual([
+		["5-hour", 0],
+		["weekly", 61],
+		["weekly fable", 100],
+	]);
+	const fallback = claude["claude-two@example.com.json"];
+	expect(fallback?.quota.windows.map((w) => [w.label, w.usedPercent, w.status])).toEqual([
+		["5-hour", 17, "allowed"],
+		["weekly", 50, "allowed"],
+		["weekly fable", 100, "rejected"],
+	]);
 });
 
 test("usage-queue pops once and never retries", async () => {

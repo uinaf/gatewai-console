@@ -10,7 +10,9 @@ replaces the stock Management Center with three screens:
   request history, and the runbook actions: reset cooldown, refresh, toggle
   websockets. Provider quota headers are folded into plain windows, so Claude's
   unified limits and Codex's primary, secondary, and per-model families read
-  the same way.
+  the same way. Idle Claude and xAI accounts have no headers, so pools also
+  reads Anthropic oauth usage and Grok billing (including GrokBuild) through
+  the proxy's `api-call`.
 - **Ledger.** Per client key, model, provider, and credential: requests, error
   rate, tokens with cache reads and writes, p50/p95 latency and time to first
   token, model share, and deltas against the previous range. The proxy keeps
