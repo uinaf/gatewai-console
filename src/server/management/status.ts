@@ -1,7 +1,7 @@
 // Gateway status_message is often a provider JSON blob. Classify it at the
 // boundary so the UI never renders request ids or nested type keys.
 
-export type StatusKind = "limited" | "auth" | "overloaded" | "error";
+type StatusKind = "limited" | "auth" | "overloaded" | "error";
 
 export interface ClassifiedStatus {
 	readonly kind: StatusKind;
