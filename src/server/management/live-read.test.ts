@@ -5,8 +5,10 @@ import {
 	BACKOFF_CAP_MS,
 	SUCCESS_TTL_MS,
 	backoffMs,
+	headerValue,
 	isFresh,
 	remember,
+	retryAfterMs,
 } from "#/server/management/live-read";
 
 const now = 1_000_000;
@@ -36,6 +38,18 @@ test("429s keep the last value and double the wait up to the cap", () => {
 	expect(backoffMs(8)).toBe(BACKOFF_CAP_MS);
 	const capped = remember(now, { value: 7, until: 0, strikes: 8 }, "limited", undefined);
 	expect(capped.strikes).toBe(8);
+	expect(capped.until).toBe(now + BACKOFF_CAP_MS);
+});
+
+test("Retry-After seconds and HTTP-date override the exponential wait, still capped", () => {
+	expect(retryAfterMs("120", now)).toBe(120_000);
+	expect(retryAfterMs(new Date(now + 5_000).toUTCString(), now)).toBe(5_000);
+	expect(retryAfterMs("nope", now)).toBeUndefined();
+	expect(headerValue({ "Retry-After": ["90"] }, "retry-after")).toBe("90");
+
+	const honoured = remember(now, undefined, "limited", undefined, 90_000);
+	expect(honoured.until).toBe(now + 90_000);
+	const capped = remember(now, undefined, "limited", undefined, BACKOFF_CAP_MS * 4);
 	expect(capped.until).toBe(now + BACKOFF_CAP_MS);
 });
 

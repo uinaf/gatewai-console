@@ -34,7 +34,13 @@ import {
 	withCodexUsage,
 } from "#/server/management/codex";
 import { type Pools, poolsOf } from "#/server/management/credential";
-import { isFresh, type LiveSlot, remember } from "#/server/management/live-read";
+import {
+	headerValue,
+	isFresh,
+	type LiveSlot,
+	remember,
+	retryAfterMs,
+} from "#/server/management/live-read";
 import {
 	XAI_BILLING_URL,
 	XAI_HEADERS,
@@ -56,7 +62,11 @@ import {
 
 // `POST /api-call`: the proxy performs the request with the credential's own
 // token substituted for `$TOKEN$`. The body comes back as a string.
-const ApiCallResponse = Schema.Struct({ status_code: Schema.Number, body: Schema.String });
+const ApiCallResponse = Schema.Struct({
+	status_code: Schema.Number,
+	body: Schema.String,
+	header: Schema.optional(Schema.Unknown),
+});
 const decodeXaiBilling = Schema.decodeUnknownOption(XaiBilling);
 const decodeCodexUsage = Schema.decodeUnknownOption(CodexUsage);
 const decodeClaudeUsage = Schema.decodeUnknownOption(ClaudeUsage);
@@ -299,7 +309,7 @@ export class ManagementApi extends Context.Service<
 				header: Readonly<Record<string, string>>,
 				decode: (body: unknown) => { _tag: "Some"; value: A } | { _tag: "None" },
 			): Effect.Effect<A | undefined> => {
-				const key = `${name}:${authIndex}`;
+				const key = `${name}:${authIndex}:${url}:${header["Chatgpt-Account-Id"] ?? ""}`;
 				return Effect.gen(function* () {
 					const slot = live.get(key) as LiveSlot<A> | undefined;
 					if (isFresh(slot, Date.now())) return slot.value;
@@ -325,7 +335,13 @@ export class ManagementApi extends Context.Service<
 								const at = Date.now();
 								const prev = live.get(key) as LiveSlot<A> | undefined;
 								if (reply.status_code === 429) {
-									const next = remember(at, prev, "limited", prev?.value);
+									const next = remember(
+										at,
+										prev,
+										"limited",
+										prev?.value,
+										retryAfterMs(headerValue(reply.header, "Retry-After"), at),
+									);
 									live.set(key, next);
 									return next.value;
 								}
