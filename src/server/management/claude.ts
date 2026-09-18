@@ -95,6 +95,7 @@ const fableLimit = (usage: ClaudeUsage): QuotaWindow | null => {
 		const used = finite(limit.value.percent);
 		if (kind !== "weekly_scoped" || used === null) return [];
 		if (model !== "fable" && model !== "fable 5") return [];
+		if (limit.value.is_active === false) return [];
 		return [{ limit: limit.value, used, active: limit.value.is_active === true }];
 	});
 	const chosen = candidates.find((candidate) => candidate.active) ?? candidates[0];
@@ -140,13 +141,20 @@ export const withClaudeUsage = (
 		if (credential.provider !== "claude") return credential;
 		const read = usage.get(credential.authIndex);
 		const windows = claudeWindows(read);
-		if (windows.length === 0) return credential;
+		const onDemand = onDemandOf(read);
+		if (windows.length === 0) {
+			if (!onDemand) return credential;
+			return {
+				...credential,
+				quota: { ...credential.quota, onDemand, observedAt },
+			};
+		}
 		return {
 			...credential,
 			quota: {
 				...credential.quota,
 				windows,
-				onDemand: onDemandOf(read),
+				onDemand,
 				observedAt,
 			},
 		};

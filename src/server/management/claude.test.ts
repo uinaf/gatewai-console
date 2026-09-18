@@ -149,6 +149,62 @@ test("null extra-usage fields and a zero window still replace header windows", (
 	expect(next.credentials[0]?.quota.onDemand).toBeNull();
 });
 
+test("an enabled extra-usage cap is kept when live windows are empty", () => {
+	const credential = byName("claude-two@example.com.json");
+	const headers = credential.quota.windows;
+	const next = withClaudeUsage(
+		{ observedAt: null, credentials: [credential] },
+		new Map([
+			[
+				credential.authIndex,
+				{
+					five_hour: null,
+					seven_day: null,
+					iguana_necktie: null,
+					extra_usage: { is_enabled: true, monthly_limit: 5000, used_credits: 125 },
+				},
+			],
+		]),
+		observedAt,
+	);
+	expect(next.credentials[0]?.quota.windows).toEqual(headers);
+	expect(next.credentials[0]?.quota.onDemand).toEqual({ usedCents: 125, capCents: 5000 });
+	expect(next.credentials[0]?.quota.observedAt).toBe(observedAt);
+});
+
+test("explicitly inactive fable limits do not block the legacy field", () => {
+	const credential = byName("claude-one@example.com.json");
+	const next = withClaudeUsage(
+		{ observedAt: null, credentials: [credential] },
+		new Map([
+			[
+				credential.authIndex,
+				{
+					iguana_necktie: { utilization: 41, resets_at: "2026-09-22T08:00:00Z" },
+					limits: [
+						{
+							kind: "weekly_scoped",
+							percent: 3,
+							is_active: false,
+							resets_at: "2026-09-21T00:00:00Z",
+							scope: { model: { display_name: "Fable" } },
+						},
+					],
+				},
+			],
+		]),
+		observedAt,
+	);
+	expect(next.credentials[0]?.quota.windows).toEqual([
+		{
+			label: "weekly fable",
+			usedPercent: 41,
+			resetsAt: "2026-09-22T08:00:00.000Z",
+			status: "allowed",
+		},
+	]);
+});
+
 test("the legacy fable field is used when limits do not name fable", () => {
 	const credential = byName("claude-one@example.com.json");
 	const next = withClaudeUsage(
