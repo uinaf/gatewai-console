@@ -117,11 +117,19 @@ export const evaluate = (
 								condition: {
 									ruleId: rule.id,
 									subject: credential.name,
-									what: credential.status === "disabled" ? "disabled" : "refresh failed",
+									what:
+										credential.status === "disabled"
+											? "disabled"
+											: credential.status === "limited"
+												? "rate limited"
+												: "refresh failed",
 									detail: `${credential.label} ${credential.status}${credential.statusMessage ? `: ${credential.statusMessage}` : ""}`,
 									remaining: null,
 								},
-								firing: credential.status === "disabled" || credential.status === "error",
+								firing:
+									credential.status === "disabled" ||
+									credential.status === "error" ||
+									credential.status === "limited",
 							},
 						];
 					default:

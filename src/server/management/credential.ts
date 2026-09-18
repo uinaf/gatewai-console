@@ -1,9 +1,10 @@
 import { type Quota, quotaOf } from "#/server/management/quota";
 import type { AuthFile, AuthFiles } from "#/server/management/schema";
+import { classifyStatus } from "#/server/management/status";
 
 // The shape the UI renders. Nothing in here comes straight from a header.
 
-type CredentialStatus = "active" | "cooling" | "disabled" | "error";
+type CredentialStatus = "active" | "cooling" | "disabled" | "limited" | "error";
 
 interface Cooldown {
 	readonly scope: string | null;
@@ -37,7 +38,9 @@ export interface Pools {
 const statusOf = (file: AuthFile, cooldowns: ReadonlyArray<Cooldown>): CredentialStatus => {
 	if (file.disabled) return "disabled";
 	if (cooldowns.length > 0) return "cooling";
-	if (file.unavailable || file.status !== "active") return "error";
+	if (file.unavailable || file.status !== "active") {
+		return classifyStatus(file.status_message).kind === "limited" ? "limited" : "error";
+	}
 	return "active";
 };
 
@@ -49,14 +52,18 @@ export const credentialOf = (file: AuthFile): Credential => {
 		until: cooldown.retry_at ?? null,
 	}));
 	const quota = quotaOf(file);
+	const status = statusOf(file, cooldowns);
 	return {
 		name: file.name,
 		authIndex: file.auth_index,
 		provider: file.provider,
 		label: file.label ?? file.email ?? file.name,
 		plan: quota.plan ?? (file.account_type === "oauth" ? null : (file.account_type ?? null)),
-		status: statusOf(file, cooldowns),
-		statusMessage: file.status_message || null,
+		status,
+		statusMessage:
+			status === "limited" || status === "error"
+				? classifyStatus(file.status_message).message
+				: null,
 		cooldowns,
 		success: file.success ?? 0,
 		failed: file.failed ?? 0,

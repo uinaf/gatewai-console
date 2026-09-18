@@ -55,7 +55,7 @@ export const describe = (rule: Rule): string => {
 		case "cooldown":
 			return "credential entered cooldown";
 		case "unhealthy":
-			return "credential disabled or failed refresh";
+			return "credential disabled, rate limited, or failed refresh";
 		case "stalled":
 			return `no records for ${rule.minutes}m`;
 	}
