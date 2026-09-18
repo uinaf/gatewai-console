@@ -35,6 +35,13 @@ import {
 } from "#/server/management/codex";
 import { type Pools, poolsOf } from "#/server/management/credential";
 import {
+	headerValue,
+	isFresh,
+	type LiveSlot,
+	remember,
+	retryAfterMs,
+} from "#/server/management/live-read";
+import {
 	XAI_BILLING_URL,
 	XAI_HEADERS,
 	XaiBilling,
@@ -55,7 +62,11 @@ import {
 
 // `POST /api-call`: the proxy performs the request with the credential's own
 // token substituted for `$TOKEN$`. The body comes back as a string.
-const ApiCallResponse = Schema.Struct({ status_code: Schema.Number, body: Schema.String });
+const ApiCallResponse = Schema.Struct({
+	status_code: Schema.Number,
+	body: Schema.String,
+	header: Schema.optional(Schema.Unknown),
+});
 const decodeXaiBilling = Schema.decodeUnknownOption(XaiBilling);
 const decodeCodexUsage = Schema.decodeUnknownOption(CodexUsage);
 const decodeClaudeUsage = Schema.decodeUnknownOption(ClaudeUsage);
@@ -286,38 +297,83 @@ export class ManagementApi extends Context.Service<
 					),
 			);
 
-			// Provider usage endpoints reached through the proxy's api-call, which
-			// substitutes the credential's own token. A failed or malformed read
-			// leaves that credential without windows; it never fails the pools read.
-			// Bodies are never logged: they carry account identifiers.
+			// One slot per credential, shared by every provider. Success is reused
+			// for a few minutes; 429s keep the last value and back off.
+			const live = new Map<string, LiveSlot<unknown>>();
+			const inflight = new Map<string, Effect.Effect<unknown>>();
+
 			const apiCall = <A>(
 				name: string,
 				authIndex: string,
 				url: string,
 				header: Readonly<Record<string, string>>,
 				decode: (body: unknown) => { _tag: "Some"; value: A } | { _tag: "None" },
-			) =>
-				read((client) =>
-					HttpClientRequest.post("/api-call").pipe(
-						HttpClientRequest.bodyJsonUnsafe({ auth_index: authIndex, method: "GET", url, header }),
-						client.execute,
-						decodeWith(ApiCallResponse),
-					),
-				).pipe(
-					Effect.map((reply): A | undefined => {
-						if (reply.status_code < 200 || reply.status_code >= 300) return undefined;
-						try {
-							const parsed = decode(JSON.parse(reply.body));
-							return parsed._tag === "Some" ? parsed.value : undefined;
-						} catch {
-							return undefined;
-						}
-					}),
-					Effect.catch((error) =>
-						Effect.logWarning(`${name} unavailable`, error.message).pipe(Effect.as(undefined)),
-					),
-					Effect.withSpan(`ManagementApi.${name}`),
-				);
+			): Effect.Effect<A | undefined> => {
+				const key = `${name}:${authIndex}:${url}:${header["Chatgpt-Account-Id"] ?? ""}`;
+				return Effect.gen(function* () {
+					const slot = live.get(key) as LiveSlot<A> | undefined;
+					if (isFresh(slot, Date.now())) return slot.value;
+
+					let pending = inflight.get(key) as Effect.Effect<A | undefined> | undefined;
+					if (!pending) {
+						const task = read((client) =>
+							HttpClientRequest.post("/api-call").pipe(
+								HttpClientRequest.bodyJsonUnsafe({
+									auth_index: authIndex,
+									method: "GET",
+									url,
+									header,
+								}),
+								client.execute,
+								decodeWith(ApiCallResponse),
+							),
+						).pipe(
+							Effect.tap((reply) =>
+								reply.status_code === 429 ? Effect.logWarning(`${name} rate limited`) : Effect.void,
+							),
+							Effect.map((reply): A | undefined => {
+								const at = Date.now();
+								const prev = live.get(key) as LiveSlot<A> | undefined;
+								if (reply.status_code === 429) {
+									const next = remember(
+										at,
+										prev,
+										"limited",
+										prev?.value,
+										retryAfterMs(headerValue(reply.header, "Retry-After"), at),
+									);
+									live.set(key, next);
+									return next.value;
+								}
+								if (reply.status_code < 200 || reply.status_code >= 300) {
+									live.set(key, remember(at, prev, "miss", undefined));
+									return prev?.value;
+								}
+								try {
+									const parsed = decode(JSON.parse(reply.body));
+									const value = parsed._tag === "Some" ? parsed.value : undefined;
+									const next = remember(at, prev, "ok", value);
+									live.set(key, next);
+									return next.value;
+								} catch {
+									live.set(key, remember(at, prev, "miss", undefined));
+									return prev?.value;
+								}
+							}),
+							Effect.catch((error) => {
+								const prev = live.get(key) as LiveSlot<A> | undefined;
+								live.set(key, remember(Date.now(), prev, "miss", undefined));
+								return Effect.logWarning(`${name} unavailable`, error.message).pipe(
+									Effect.as(prev?.value),
+								);
+							}),
+						);
+						pending = yield* Effect.cachedWithTTL(task, Duration.zero);
+						inflight.set(key, pending);
+					}
+					return yield* pending;
+				}).pipe(Effect.withSpan(`ManagementApi.${name}`));
+			};
 
 			const xaiBilling = (authIndex: string) =>
 				apiCall("xaiBilling", authIndex, XAI_BILLING_URL, XAI_HEADERS, (body) => {
